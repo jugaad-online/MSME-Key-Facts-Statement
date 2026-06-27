@@ -66,10 +66,10 @@
           <input type="text" id="amount" inputmode="numeric" value="" />
           <span id="amountWords" class="amount-words"></span>
         </label>
-        <label>Date of Sanction<span class="help" title="Date on which the loan was sanctioned / approved by the lender. Mandatory. Must be on or before the Date of Disbursement (validation checks this when a disbursement date is entered). Blank by default; once you set a Date of Disbursement the sanction date mirrors it until you edit it yourself.">?</span>
+        <label>Date of Sanction<span class="help" title="Date on which the loan was sanctioned / approved by the lender. Mandatory; blank by default. The sanction date must be on or before the Date of Disbursement — if you set a sanction date that is later than the disbursement date (or while disbursement is still blank), the Date of Disbursement is automatically set equal to the sanction date.">?</span>
           <input type="date" id="sanctionDate" value="" />
         </label>
-        <label class="apr-dep">Date of Disbursement<span class="help" title="Date on which the loan amount is released to the borrower. Optional — may be left blank if not yet known (e.g. KFS issued at sanction stage). When provided, the whole repayment schedule and APR (Actual/365 day-count) key off this date.">?</span>
+        <label class="apr-dep">Date of Disbursement<span class="help" title="Date on which the loan amount is released to the borrower. Optional — may be left blank if not yet known (e.g. KFS issued at sanction stage). It auto-fills from the Date of Sanction when blank/earlier, and while you have not edited the sanction date, the sanction date mirrors changes to this field. When provided, the whole repayment schedule and APR (Actual/365 day-count) key off this date.">?</span>
           <input type="date" id="disbursalDate" value="" />
         </label>
         <label>Disbursement Schedule<span class="help" title="Whether the loan is released 100% upfront or in stages/tranches.">?</span>
