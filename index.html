@@ -66,8 +66,11 @@
           <input type="text" id="amount" inputmode="numeric" value="" />
           <span id="amountWords" class="amount-words"></span>
         </label>
-        <label class="apr-dep">Date of Disbursement<span class="help" title="Date on which the loan amount is released to the borrower.">?</span>
-          <input type="date" id="disbursalDate" value="2026-05-08" />
+        <label>Date of Sanction<span class="help" title="Date on which the loan was sanctioned / approved by the lender. Mandatory. Must be on or before the Date of Disbursement (validation checks this when a disbursement date is entered). Blank by default; once you set a Date of Disbursement the sanction date mirrors it until you edit it yourself.">?</span>
+          <input type="date" id="sanctionDate" value="" />
+        </label>
+        <label class="apr-dep">Date of Disbursement<span class="help" title="Date on which the loan amount is released to the borrower. Optional — may be left blank if not yet known (e.g. KFS issued at sanction stage). When provided, the whole repayment schedule and APR (Actual/365 day-count) key off this date.">?</span>
+          <input type="date" id="disbursalDate" value="" />
         </label>
         <label>Disbursement Schedule<span class="help" title="Whether the loan is released 100% upfront or in stages/tranches.">?</span>
           <select id="disbursalSchedule" class="combo">
@@ -165,6 +168,10 @@
         <label>Reset Periodicity (Months)<span class="help" title="How often (in months) a floating rate is reset to the prevailing benchmark.">?</span>
           <input type="number" id="resetMonths" value="3" step="1" />
         </label>
+        <label class="apr-dep">Annual Percentage Rate (APR) (%)<span class="help" title="Effective annualised rate including interest and all fees, computed from the loan terms via the IRR / reducing-balance method. Auto-calculated by default; untick 'Auto' to enter your own APR — it will then be used as-is in the KFS (Sl. 9) and the APR illustration (Annexure-A(1)).&#10;&#10;Formula — APR is the rate that makes the net present value of all cash flows zero. Solve for the periodic rate i in:&#10;&#10;  Net disbursed = Σ EPIₜ / (1 + i)^t,  for t = 1 … N&#10;&#10;then  APR = i × (instalments per year).&#10;&#10;Where: Net disbursed = Sanctioned amount − all upfront fees &amp; charges; EPIₜ = the actual instalment paid in period t (interest accrues Actual/365 on the reducing balance); N = total number of instalments; i = periodic IRR.">?</span>
+          <input type="number" id="aprOverride" step="any" readonly />
+        </label>
+        <label class="apr-auto-line"><input type="checkbox" id="aprAuto" checked /> Auto-calculate APR (untick to enter manually)</label>
       </fieldset>
 
       <fieldset data-target="p1-s8">
@@ -287,9 +294,9 @@
         </label>
         <label>Recovery agent clause<span class="help" title="Loan agreement clause relating to engagement of recovery agents. Replace with the actual clause reference from your loan agreement.">?</span><input type="text" id="q_recovery" value="As per the Loan Agreement" /></label>
         <label>Grievance redressal clause<span class="help" title="Loan agreement clause detailing the grievance redressal mechanism. Replace with the actual clause reference from your loan agreement.">?</span><input type="text" id="q_grm" value="As per the Loan Agreement" /></label>
-        <label>Name of Grievance Redressal Officer (GRO)<span class="help" title="Name of the nodal Grievance Redressal Officer who handles borrower complaints.">?</span><input type="text" id="q_groName" value="" /></label>
-        <label>Phone of Grievance Redressal Officer (GRO)<span class="help" title="Contact phone number of the Grievance Redressal Officer.">?</span><input type="text" id="q_groPhone" value="" /></label>
-        <label>Email of Grievance Redressal Officer (GRO)<span class="help" title="Contact email id of the Grievance Redressal Officer.">?</span><input type="text" id="q_groEmail" value="" /></label>
+        <label>Name of Grievance Redressal Officer (GRO)<span class="help" title="Name of the nodal Grievance Redressal Officer who handles borrower complaints. Optional — if left blank it is flagged as an advisory note and can be filled in manually later.">?</span><input type="text" id="q_groName" value="" /></label>
+        <label>Phone of Grievance Redressal Officer (GRO)<span class="help" title="Contact phone number of the Grievance Redressal Officer. Optional — if left blank it is flagged as an advisory note and can be filled in manually later.">?</span><input type="text" id="q_groPhone" value="" /></label>
+        <label>Email of Grievance Redressal Officer (GRO)<span class="help" title="Contact email id of the Grievance Redressal Officer. Optional — if left blank it is flagged as an advisory note and can be filled in manually later.">?</span><input type="text" id="q_groEmail" value="" /></label>
         <label>Subject to transfer / securitization (Y/N)<span class="help" title="Whether the loan is, or may in future be, transferred to other lenders or securitized.">?</span>
           <select id="q_transfer"><option>No</option><option>Yes</option></select>
         </label>

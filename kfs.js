@@ -227,6 +227,7 @@ function buildInput(s, n) {
     proposalNo: s("proposalNo"),
     loanType: s("loanType"),
     amount: n("amount"),
+    sanctionDate: s("sanctionDate"),
     disbursalDate: s("disbursalDate"),
     disbursalSchedule: s("disbursalSchedule"),
     disbursalClause: s("disbursalClause"),
@@ -483,6 +484,12 @@ function buildKfsHtml(inp, res) {
             <td class="lbl" style="width:20%">Type of Loan</td>
             <td class="val">${inp.loanType || "-"}</td>
           </tr>
+          <tr>
+            <td class="lbl">Date of Sanction</td>
+            <td class="val">${fmtDate(inp.sanctionDate)}</td>
+            <td class="lbl">Date of Disbursement</td>
+            <td class="val">${disbDate}</td>
+          </tr>
         </table>
       </td></tr>
       <tr><td class="sn main">2</td><td class="lbl">Sanctioned Loan amount (in Rupees)</td><td class="val" colspan="2">₹ ${fmtMoney(res.P)}<br><span class="muted">(${res.amountWords})</span></td></tr>
@@ -704,9 +711,32 @@ function addPageControls() {
 /* =================================================================
    Wire up
    ================================================================= */
+// Keep the APR input in sync. By default APR is auto-calculated and shown read-only;
+// when the user unticks "Auto" they can type their own APR, which is then used as-is
+// in the KFS. Mutates res.apr so render() picks up a manual override.
+function syncApr(res) {
+  const aprInput = document.getElementById("aprOverride");
+  const autoChk = document.getElementById("aprAuto");
+  if (!aprInput) return;
+  const auto = !autoChk || autoChk.checked;
+  aprInput.readOnly = auto;
+  if (auto) {
+    // Show the freshly computed APR (blank if it could not be computed).
+    aprInput.value = (typeof res.apr === "number" && isFinite(res.apr))
+      ? (res.apr * 100).toFixed(2)
+      : "";
+    return;
+  }
+  // Manual override: use the entered percentage when valid, otherwise fall back to the
+  // computed value so the KFS is never left blank.
+  const v = parseFloat(String(aprInput.value || "").replace(/,/g, ""));
+  if (isFinite(v)) res.apr = v / 100;
+}
+
 function refresh() {
   const inp = readInput();
   const res = calculate(inp);
+  syncApr(res);
   render(inp, res);
 }
 
@@ -891,16 +921,20 @@ function applyLoanTypeProfile(name) {
 const STORAGE_KEY = "kfsMakerInputs_v1";
 const DEFAULTS = {};
 
+// While true, the Date of Sanction mirrors the Date of Disbursement. The first time the
+// user edits the sanction date themselves, this flips to false and the two decouple.
+let sanctionDateAuto = true;
+
 function captureDefaults() {
   document.querySelectorAll(".form-panel input, .form-panel select").forEach(el => {
-    if (el.id && el.type !== "file") DEFAULTS[el.id] = el.value;
+    if (el.id && el.type !== "file") DEFAULTS[el.id] = el.type === "checkbox" ? el.checked : el.value;
   });
 }
 
 function saveInputs() {
   const data = {};
   document.querySelectorAll(".form-panel input, .form-panel select").forEach(el => {
-    if (el.id && el.type !== "file") data[el.id] = el.value;
+    if (el.id && el.type !== "file") data[el.id] = el.type === "checkbox" ? el.checked : el.value;
   });
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (e) { /* storage unavailable */ }
 }
@@ -911,15 +945,20 @@ function restoreInputs() {
   if (!data) return;
   Object.entries(data).forEach(([id, val]) => {
     const el = document.getElementById(id);
-    if (el && el.type !== "file") el.value = val;
+    if (!el || el.type === "file") return;
+    if (el.type === "checkbox") el.checked = !!val;
+    else el.value = val;
   });
 }
 
 function resetToDefaults() {
   try { localStorage.removeItem(STORAGE_KEY); } catch (e) { /* ignore */ }
+  sanctionDateAuto = true; // back to mirroring the disbursement date
   Object.entries(DEFAULTS).forEach(([id, val]) => {
     const el = document.getElementById(id);
-    if (el) el.value = val;
+    if (!el) return;
+    if (el.type === "checkbox") el.checked = !!val;
+    else el.value = val;
   });
   document.querySelectorAll(".form-panel .invalid").forEach(el => el.classList.remove("invalid"));
   const box = document.getElementById("validateMsg");
@@ -983,12 +1022,14 @@ function showGuide() {
     `<ol class="guide-list">` +
     `<li><b>Built for MSME loans.</b> This generates the RBI <i>Key Facts Statement (Annexure-A)</i> &mdash; Part-1, Part-2, the APR illustration (<i>Annexure-A(1)</i>) and the repayment schedule (<i>Annexure-A(2)</i>).</li>` +
     `<li><b>Pick the <i>Type of Loan</i> first.</b> Selecting a product (ECLGS 5.0, MSME Term Loan, MUDRA, CC/OD, LAP, etc.) <b>auto-fills indicative defaults</b> &mdash; tenure, rate, moratorium, fees and charges &mdash; per RBI / typical bank norms. Adjust any value as needed.</li>` +
-    `<li><b>Fill in the loan details.</b> Inputs are grouped into cards by KFS serial number (Sl. 1&ndash;10, then Part-2). Every field has a small <span class="guide-q">?</span> marker &mdash; click it to see what that field means.</li>` +
+    `<li><b>Fill in the loan details.</b> Inputs are grouped into cards by KFS serial number (Sl. 1&ndash;10, then Part-2). Every field has a small <span class="guide-q">?</span> marker &mdash; click it to see what that field means. <b>Field names in <span style="color:#800000">maroon</span> feed the APR.</b></li>` +
+    `<li><b>Sanction &amp; Disbursement dates.</b> Both start blank. The <i>Date of Sanction</i> is <b>mandatory</b> and must be on or before the <i>Date of Disbursement</i> (checked when a disbursement date is entered). The <i>Date of Disbursement</i> is optional (e.g. a KFS issued at sanction stage); once you set it, the sanction date mirrors it until you edit the sanction date yourself.</li>` +
     `<li><b>Jump to a section.</b> Click any input card and the matching section of the KFS preview scrolls into view and briefly highlights.</li>` +
     `<li><b>Pick the rate type.</b> Choose <i>Floating</i>, <i>Fixed</i>, or <i>Hybrid</i> (fixed for an initial period, then floating). Relevant rate fields appear automatically.</li>` +
     `<li><b>Fees &amp; charge nature.</b> Enter the amount and the <i>One-time / Recurring</i> nature side-by-side for <i>Payable to RE (8A)</i> and <i>Third Party (8B)</i>.</li>` +
+    `<li><b>APR.</b> The <i>Annual Percentage Rate</i> is auto-calculated from the loan terms and fees (IRR / reducing-balance method). Untick <i>Auto</i> to type your own APR &mdash; it is then used as-is in the KFS (Sl. 9) and the APR illustration.</li>` +
     `<li><b>Use dropdowns.</b> Many fields are dropdowns; choose <i>Other (specify)</i> to type a custom value.</li>` +
-    `<li><b>Click <span class="guide-pill">&#10003; Validate</span></b> (floating button, bottom-right). Any missing or invalid fields are highlighted in red and listed at the top.</li>` +
+    `<li><b>Click <span class="guide-pill">&#10003; Validate</span></b> (floating button, bottom-right). Missing or invalid mandatory fields are highlighted in red and listed at the top. The Grievance Redressal Officer (GRO) details are optional &mdash; if left blank they show as an amber note and can be added manually later.</li>` +
     `<li><b>Download / Print PDF.</b> Enabled once validation passes &mdash; this prints the full KFS (Annexure-A Parts 1&amp;2, Annexure-A(1) and Annexure-A(2)), each on its own page.</li>` +
     `<li><b>Bulk loans (CSV).</b> In <i>Bulk Import</i>: click <span class="guide-pill">Download CSV template</span>, fill <b>one row per loan</b>, then <span class="guide-pill">Import CSV</span>. Every row is validated; valid ones generate a KFS each and invalid ones are listed and skipped.</li>` +
     `<li><b>Auto-save &amp; Reset.</b> Your inputs are saved in this browser automatically. <span class="guide-pill">Reset</span> clears them back to the defaults.</li>` +
@@ -1018,7 +1059,7 @@ function requiredRulesFor(mode) {
     ["proposalNo", "Loan Proposal / Account No."],
     ["loanType", "Type of Loan"],
     ["amount", "Sanctioned Amount", "positive"],
-    ["disbursalDate", "Date of Disbursement"],
+    ["sanctionDate", "Date of Sanction"],
     ["disbursalSchedule", "Disbursement Schedule"],
     ["tenureMonths", "Tenure (Months)", "positive"],
     ["frequency", "Instalment Frequency"],
@@ -1092,6 +1133,12 @@ function bankingTermProblems() {
 
   if (str("rateMode") === "Hybrid" && tenure > 0 && num("hybridFixedYears") * 12 > tenure)
     out.push({ msg: "Hybrid fixed-rate period must not exceed the Tenure", fields: ["hybridFixedYears", "tenureMonths"] });
+
+  // Sanction must not be dated after disbursement (ISO yyyy-mm-dd compares as text).
+  const sanction = str("sanctionDate");
+  const disbursal = str("disbursalDate");
+  if (sanction && disbursal && sanction > disbursal)
+    out.push({ msg: "Date of Sanction cannot be after the Date of Disbursement", fields: ["sanctionDate", "disbursalDate"] });
 
   return out;
 }
@@ -1178,14 +1225,6 @@ function validateForm() {
     problems.push(it.msg);
   });
 
-  // Force the user to set the actual Date of Disbursement instead of leaving the
-  // prefilled placeholder default — the whole schedule (and APR) keys off this date.
-  const disbEl = document.getElementById("disbursalDate");
-  if (disbEl && disbEl.value && DEFAULTS.disbursalDate && disbEl.value === DEFAULTS.disbursalDate) {
-    disbEl.classList.add("invalid");
-    problems.push("Date of Disbursement — please set the actual disbursement date (it is still the default).");
-  }
-
   // Advisory (non-blocking) checks: recommended fields that are empty / mis-formatted.
   // These are highlighted amber and listed as a note, but never prevent printing.
   const advisories = advisoryProblems();
@@ -1240,7 +1279,7 @@ function setOutputButtons(enabled, disabledTitle) {
    ================================================================= */
 // Canonical column order for the CSV template and import. Header == field id.
 const CSV_COLUMNS = [
-  "proposalNo", "loanType", "amount", "disbursalDate", "disbursalSchedule", "disbursalClause",
+  "proposalNo", "loanType", "amount", "sanctionDate", "disbursalDate", "disbursalSchedule", "disbursalClause",
   "tenureMonths", "moratoriumMonths", "payInterestMonthly", "frequency", "roundEmi",
   "rateMode", "hybridFixedRate", "hybridFixedYears", "benchmark", "benchmarkRate", "spread", "resetMonths", "flatRate",
   "re_processing", "re_insurance", "re_valuation", "re_other",
@@ -1435,6 +1474,8 @@ function buildTemplateCSV() {
   const sample = Object.assign({}, DEFAULTS, {
     proposalNo: "54540610002026",
     amount: "2,00,000",
+    sanctionDate: "2026-05-01",
+    disbursalDate: "2026-05-08",
     c_other: "Nil",
     q_groName: "Mr. Rakesh Sharma",
     q_groPhone: "1800-123-4567",
@@ -1447,6 +1488,8 @@ function buildTemplateCSV() {
     proposalNo: "54540610002027",
     loanType: "MSME Term Loan",
     amount: "1000000",
+    sanctionDate: "2026-04-15",
+    disbursalDate: "2026-04-20",
     tenureMonths: "84",
     moratoriumMonths: "6",
     payInterestMonthly: "Yes",
@@ -1596,6 +1639,35 @@ document.addEventListener("DOMContentLoaded", () => {
     el.addEventListener("input", onEdit);
     el.addEventListener("change", onEdit);
   });
+
+  // Date of Sanction mirrors the Date of Disbursement by default, until the user edits
+  // it themselves. (Standard ordering: sanction on/before disbursement.)
+  const sanctionEl = document.getElementById("sanctionDate");
+  const disbursalEl = document.getElementById("disbursalDate");
+  if (sanctionEl && disbursalEl) {
+    // After restore: if the saved sanction date differs from disbursement, the user had
+    // already taken manual control, so stop mirroring.
+    if (sanctionEl.value && sanctionEl.value !== disbursalEl.value) sanctionDateAuto = false;
+    // Otherwise keep them equal on load.
+    if (sanctionDateAuto) sanctionEl.value = disbursalEl.value;
+    // The user typing a sanction date decouples it from the disbursement date.
+    // Keep sanction ≤ disbursement: if the new sanction date is later than the
+    // disbursement date (including when disbursement is still blank), set the
+    // disbursement date equal to the sanction date.
+    ["input", "change"].forEach(ev => sanctionEl.addEventListener(ev, () => {
+      sanctionDateAuto = false;
+      if (sanctionEl.value && sanctionEl.value > disbursalEl.value) {
+        disbursalEl.value = sanctionEl.value;
+        saveInputs();
+        refresh();
+      }
+    }));
+    // While still mirroring, changing the disbursement date updates the sanction date too.
+    ["input", "change"].forEach(ev => disbursalEl.addEventListener(ev, () => {
+      if (sanctionDateAuto) { sanctionEl.value = disbursalEl.value; saveInputs(); refresh(); }
+    }));
+  }
+
   // Selecting a Type of Loan auto-fills indicative product defaults (RBI/bank norms).
   const loanTypeSel = document.getElementById("loanType");
   if (loanTypeSel) {
