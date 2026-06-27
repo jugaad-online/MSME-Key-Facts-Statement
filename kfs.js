@@ -485,7 +485,7 @@ function buildKfsHtml(inp, res) {
       </td></tr>
       <tr><td class="sn main">2</td><td class="lbl">Sanctioned Loan amount (in Rupees)</td><td class="val" colspan="2">₹ ${fmtMoney(res.P)} <span class="muted">(${res.amountWords})</span></td></tr>
       <tr><td class="sn main">3</td><td class="lbl">Disbursal schedule<br><span class="muted">(i) Disbursement in stages or 100% upfront. (ii) If it is stage wise, mention the clause of loan agreement having relevant details.</span></td><td class="val" colspan="2">${inp.disbursalSchedule}${inp.disbursalClause ? " &mdash; " + inp.disbursalClause : ""}</td></tr>
-      <tr id="p1-s4"><td class="sn main">4</td><td class="lbl">Loan term (year/months/days)</td><td class="val" colspan="2">${tenureTxt}${res.moratoriumMonths ? ` <span class="muted">(includes a MoP of ${res.moratoriumMonths} month${res.moratoriumMonths == 1 ? "" : "s"}${res.interestServiced && inp.moratoriumInstalment ? `; instalment during MoP: ${inp.moratoriumInstalment}` : ""})</span>` : ""}</td></tr>
+      <tr id="p1-s4"><td class="sn main">4</td><td class="lbl">Loan term (year/months/days)</td><td class="val" colspan="2">${tenureTxt}${res.moratoriumMonths ? ` <span class="muted">(includes a MoP of ${res.moratoriumMonths} month${res.moratoriumMonths == 1 ? "" : "s"}; ${res.interestServiced ? "during the MoP the borrower services the monthly accrued interest, with principal repayment commencing after the MoP" : "during the MoP the accrued interest is capitalised to the outstanding principal each month, with no instalment payable during the MoP"})</span>` : ""}</td></tr>
       <tr><td class="sn main">5</td><td class="lbl" colspan="3">Instalment details</td></tr>
       <tr><td colspan="4" class="nestcell">
         <table class="kfs-table nested">
@@ -638,15 +638,17 @@ function buildKfsHtml(inp, res) {
     ${foot("Annexure-A(1) &middot; Illustration for computation of APR for MSME Loans", 3)}
   </article>`;
 
-  // Instalment shown for serviced-interest moratorium rows depends on the chosen
-  // "Instalment during Moratorium" option (display-only; the computation is unchanged):
-  //  • "Pay interest only"      -> the text "Pay interest only"
-  //  • "Computed interest"      -> the computed interest amount (as accrued)
+  // For serviced-interest moratorium rows, the "Instalment during Moratorium" option controls
+  // how the INSTALMENT column is displayed (display-only; computation unchanged). The Interest
+  // column always shows the actual computed (accrued) interest.
+  //  • "Pay interest only"          -> the text "Pay interest only"
+  //  • "Computed interest"          -> the computed interest amount (as accrued)
   //  • "Add 0 (Zero) to instalment" -> ₹ 0
-  //  • any other (custom) text  -> shown verbatim
+  //  • any other (custom) text      -> shown verbatim
   const morLabel = inp.moratoriumInstalment || "";
+  const isMorServiced = (s) => s.moratorium && s.interestPaid;
   const morInstalmentCell = (s) => {
-    if (!s.moratorium || !s.interestPaid) return "₹ " + fmtMoney(s.instalment);
+    if (!isMorServiced(s)) return "₹ " + fmtMoney(s.instalment);
     if (morLabel === "Pay interest only") return '<span class="muted">Pay interest only</span>';
     if (morLabel === "Add 0 (Zero) to instalment") return "₹ " + fmtMoney(0);
     if (morLabel === "Computed interest" || !morLabel) return "₹ " + fmtMoney(s.instalment);
@@ -1282,9 +1284,9 @@ function validateForm() {
 // and only gates the actual action when mandatory fields are incomplete.
 function setOutputButtons() {
   const cfg = [
-    ["btnDownload", "Download the KFS as a PDF file to your device"],
+    ["btnDownload", "Download the KFS — choose PDF or Word (.docx / .doc)"],
     ["btnPrint", "Print the KFS (use 'Save as PDF' in the print dialog)"],
-    ["btnShare", "Share the KFS as a PDF file"],
+    ["btnShare", "Share the KFS — choose PDF or Word (.docx / .doc)"],
   ];
   cfg.forEach(([id, okTitle]) => {
     const b = document.getElementById(id);
@@ -1455,32 +1457,184 @@ async function withBusy(btnId, fn) {
   finally { if (btn && old) { btn.innerHTML = old.html; btn.disabled = old.disabled; } }
 }
 
-// Download the KFS as a PDF file to the user's device.
-async function downloadPdf() {
-  await withBusy("btnDownload", async () => {
-    const blob = await generatePdfBlob();
-    if (blob) downloadBlob(pdfFileName(), blob, "application/pdf");
+// ---- Word (.doc / .docx) export -------------------------------------------------
+// Self-contained CSS embedded in the exported Word/HTML document so the KFS tables
+// render with the same borders, shading and colours outside the app (CSS variables
+// are resolved to literal values; flex footers degrade gracefully in Word).
+const EXPORT_CSS = `
+@page { size: A4 portrait; margin: 12mm; }
+* { box-sizing: border-box; }
+body { font-family: Arial, "Helvetica Neue", sans-serif; color: #1a1a1a; font-size: 12px; margin: 0; }
+.kfs-page.brk { page-break-before: always; }
+.kfs-annex { display: inline-block; background: #084a8a; color: #fff; font-weight: 700; font-size: 12px; letter-spacing: .5px; padding: 3px 12px; border-radius: 4px; margin-bottom: 8px; }
+.kfs-title { text-align: center; margin-bottom: 14px; }
+.kfs-main { font-size: 18px; font-weight: 700; letter-spacing: 1px; }
+.kfs-sub { font-size: 14px; font-weight: 600; margin-top: 2px; }
+.kfs-cite { font-size: 11px; color: #6b7280; margin-top: 4px; }
+.kfs-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.kfs-table td, .kfs-table th { border: 1px solid #c9ced6; padding: 6px 9px; vertical-align: top; text-align: left; }
+.kfs-table .sn { width: 40px; text-align: center; vertical-align: middle; font-weight: 600; }
+.kfs-table .sn.main { font-weight: 700; font-size: 13px; color: #084a8a; background: #f3f6fa; }
+.kfs-table .sn.sub { font-weight: 500; font-size: 11px; color: #6b7280; text-align: right; padding-right: 8px; }
+.kfs-table .lbl { width: 42%; }
+.kfs-table .sub-lbl { padding-left: 18px; color: #333; }
+.kfs-table .val { font-weight: 600; }
+.kfs-table .subhead td, .kfs-table .subhead th { background: #f3f6fa; font-weight: 600; text-align: center; }
+.kfs-table .section-h { background: #eaf1f9; font-weight: 600; text-align: center; }
+.kfs-table .totrow td { background: #f7faff; font-weight: 700; }
+.muted { color: #6b7280; font-weight: 400; font-size: 11px; }
+.kfs-table .nestcell { padding: 0; }
+.kfs-table .nested { border: none; }
+.kfs-table .nested td { border-left: none; }
+.kfs-table .nested tr td:first-child { border-left: none; }
+.kfs-table .nested tr td:last-child { border-right: none; }
+.kfs-table .nested.s1grid td.lbl { width: 1%; white-space: nowrap; }
+.schedule td, .schedule th { text-align: right; }
+.schedule td:first-child, .schedule th:first-child { text-align: center; }
+.schedule tr.mor-row { background: #fff7e6; }
+.kfs-notes { margin-top: 10px; font-size: 10px; line-height: 1.45; color: #6b7280; }
+.kfs-notes p { margin: 2px 0; }
+.kfs-table sup, .kfs-notes sup { color: #8b0000; font-weight: 800; }
+.page-foot { margin-top: 14px; padding-top: 8px; border-top: 1px solid #c9ced6; font-size: 11px; color: #6b7280; }
+`;
+
+// Build a complete, self-contained HTML document (Word-compatible) from the rendered
+// KFS output. The on-screen Edit buttons / no-print chrome are stripped; the first
+// page's leading page-break is suppressed so Word doesn't emit a blank first page.
+function buildExportHtml() {
+  const el = document.getElementById("kfsOutput");
+  if (!el || !el.innerHTML.trim()) {
+    alert("There is nothing to export yet. Fill the form and click Validate first.");
+    return null;
+  }
+  const clone = el.cloneNode(true);
+  clone.querySelectorAll(".no-print, .page-edit-btn").forEach(n => n.remove());
+  // Force a fresh page before every section EXCEPT the first (so Word/PDF don't emit a
+  // blank leading page). Use a class — Word honours `page-break-before` on a class
+  // reliably, whereas inline styles get normalised to the unsupported `break-before`.
+  clone.querySelectorAll(".kfs-page").forEach((p, i) => { if (i > 0) p.classList.add("brk"); });
+  return `<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" ` +
+    `xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">` +
+    `<head><meta charset="utf-8"><title>Key Facts Statement (KFS)</title>` +
+    `<style>${EXPORT_CSS}</style></head><body>${clone.innerHTML}</body></html>`;
+}
+
+// Word 97–2003 (.doc): an HTML document with Office namespaces. Opens natively in
+// Microsoft Word / Google Docs and is fully editable.
+function generateDocBlob() {
+  const html = buildExportHtml();
+  if (!html) return null;
+  return new Blob(["\ufeff", html], { type: "application/msword" });
+}
+
+// Modern Word (.docx): true OOXML produced by html-docx-js from the same HTML.
+function generateDocxBlob() {
+  const html = buildExportHtml();
+  if (!html) return null;
+  if (typeof window.htmlDocx === "undefined" || !window.htmlDocx.asBlob) {
+    alert("The Word (.docx) library could not be loaded.\nPlease check your internet connection and refresh — or choose PDF or .doc instead.");
+    return null;
+  }
+  try {
+    return window.htmlDocx.asBlob(html, { orientation: "portrait", margins: { top: 720, right: 720, bottom: 720, left: 720 } });
+  } catch (err) {
+    alert("Could not create the Word (.docx) file.\n" + err);
+    return null;
+  }
+}
+
+// Supported export formats keyed by the value the chooser returns.
+const EXPORT_TYPES = {
+  pdf: { ext: "pdf", mime: "application/pdf", make: generatePdfBlob },
+  docx: { ext: "docx", mime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", make: generateDocxBlob },
+  doc: { ext: "doc", mime: "application/msword", make: generateDocBlob },
+};
+
+// File name for an export of the given extension (mirrors pdfFileName()).
+function exportFileName(ext) {
+  const slug = (s) => String(s || "").trim().replace(/[^\w]+/g, "_").replace(/^_+|_+$/g, "");
+  if (bulkMode) return `KFS_all_loans.${ext}`;
+  const acct = slug(document.getElementById("proposalNo") && document.getElementById("proposalNo").value);
+  return `${["KFS", acct].filter(Boolean).join("_")}.${ext}`;
+}
+
+// Show a small popup letting the user pick the export format. Resolves to
+// "pdf" | "docx" | "doc", or null if the user dismisses it.
+function chooseExportFormat(actionVerb) {
+  return new Promise((resolve) => {
+    let overlay = document.getElementById("exportOverlay");
+    if (!overlay) {
+      overlay = document.createElement("div");
+      overlay.id = "exportOverlay";
+      overlay.className = "help-overlay no-print hidden";
+      overlay.innerHTML =
+        `<div class="help-modal export-modal" role="dialog" aria-modal="true">` +
+        `<button type="button" class="help-close" aria-label="Close">&times;</button>` +
+        `<h3 class="help-modal-title"></h3>` +
+        `<p class="export-modal-sub">Choose a file format:</p>` +
+        `<div class="export-format-btns">` +
+        `<button type="button" class="export-fmt" data-fmt="pdf">PDF<span>.pdf</span></button>` +
+        `<button type="button" class="export-fmt" data-fmt="docx">Word<span>.docx</span></button>` +
+        `<button type="button" class="export-fmt" data-fmt="doc">Word 97&ndash;2003<span>.doc</span></button>` +
+        `</div></div>`;
+      document.body.appendChild(overlay);
+    }
+    overlay.querySelector(".help-modal-title").textContent = `${actionVerb} the KFS`;
+
+    const close = (val) => {
+      overlay.classList.add("hidden");
+      overlay.removeEventListener("click", onOverlay);
+      document.removeEventListener("keydown", onKey);
+      btns.forEach(b => b.removeEventListener("click", onBtn));
+      closeBtn.removeEventListener("click", onClose);
+      resolve(val);
+    };
+    const onOverlay = (e) => { if (e.target === overlay) close(null); };
+    const onKey = (e) => { if (e.key === "Escape") close(null); };
+    const onBtn = (e) => close(e.currentTarget.getAttribute("data-fmt"));
+    const onClose = () => close(null);
+    const btns = [...overlay.querySelectorAll(".export-fmt")];
+    const closeBtn = overlay.querySelector(".help-close");
+    overlay.addEventListener("click", onOverlay);
+    document.addEventListener("keydown", onKey);
+    btns.forEach(b => b.addEventListener("click", onBtn));
+    closeBtn.addEventListener("click", onClose);
+    overlay.classList.remove("hidden");
   });
 }
 
-// Generate a PDF and share it via the Web Share API,
-// falling back to a normal download when file-sharing isn't supported.
+// Download the KFS to the user's device in the chosen format (PDF / .docx / .doc).
+async function downloadPdf() {
+  const fmt = await chooseExportFormat("Download");
+  if (!fmt) return;
+  const t = EXPORT_TYPES[fmt];
+  await withBusy("btnDownload", async () => {
+    const blob = await t.make();
+    if (blob) downloadBlob(exportFileName(t.ext), blob, t.mime);
+  });
+}
+
+// Share the KFS in the chosen format via the Web Share API, falling back to a normal
+// download when file-sharing isn't supported.
 async function sharePdf() {
+  const fmt = await chooseExportFormat("Share");
+  if (!fmt) return;
+  const t = EXPORT_TYPES[fmt];
   await withBusy("btnShare", async () => {
-    const blob = await generatePdfBlob();
+    const blob = await t.make();
     if (!blob) return;
-    const filename = pdfFileName();
-    const file = new File([blob], filename, { type: "application/pdf" });
+    const filename = exportFileName(t.ext);
+    const file = new File([blob], filename, { type: t.mime });
     try {
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({ files: [file], title: "Key Fact Statement (KFS)", text: "Key Fact Statement" });
       } else {
-        downloadBlob(filename, blob, "application/pdf");
-        alert("Sharing files isn't supported on this device/browser, so the PDF was downloaded instead.\nYou can attach it manually to email or any messaging app.");
+        downloadBlob(filename, blob, t.mime);
+        alert("Sharing files isn't supported on this device/browser, so the file was downloaded instead.\nYou can attach it manually to email or any messaging app.");
       }
     } catch (err) {
       if (err && err.name === "AbortError") return; // user dismissed the share sheet
-      alert("Could not share the PDF.\n" + err);
+      alert("Could not share the file.\n" + err);
     }
   });
 }

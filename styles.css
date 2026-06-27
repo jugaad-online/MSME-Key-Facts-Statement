@@ -278,6 +278,31 @@ legend { font-weight: 600; color: var(--accent-dark); padding: 0 6px; font-size:
 @keyframes helpPop { from { transform: scale(0.94); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 .help-modal-title { margin: 0 28px 10px 0; font-size: 15px; color: var(--accent-dark); }
 .help-modal-desc { margin: 0; font-size: 13.5px; line-height: 1.6; color: #333; white-space: pre-wrap; }
+
+/* ---------- Export format chooser ---------- */
+.export-modal { max-width: 380px; }
+.export-modal-sub { margin: 0 0 14px; font-size: 13px; color: #444; }
+.export-format-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+.export-fmt {
+  flex: 1 1 30%;
+  min-width: 96px;
+  cursor: pointer;
+  border: 1px solid var(--line);
+  background: #f7faff;
+  border-radius: 8px;
+  padding: 14px 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent-dark);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transition: background .15s, border-color .15s, transform .1s;
+}
+.export-fmt span { font-size: 11px; font-weight: 500; color: var(--muted); }
+.export-fmt:hover { background: #eaf1f9; border-color: var(--accent); }
+.export-fmt:active { transform: scale(0.97); }
 .help-close {
   position: absolute;
   top: 8px;
