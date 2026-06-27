@@ -1025,9 +1025,6 @@ function requiredRulesFor(mode) {
     ["rateMode", "Rate Type"],
     ["q_recovery", "Recovery agent clause"],
     ["q_grm", "Grievance redressal clause"],
-    ["q_groName", "Name of Grievance Redressal Officer (GRO)"],
-    ["q_groPhone", "Phone of Grievance Redressal Officer (GRO)", "phone"],
-    ["q_groEmail", "Email of Grievance Redressal Officer (GRO)", "email"],
     ["q_transfer", "Subject to transfer / securitization (Y/N)"],
   ];
   if (mode === "Floating") {
@@ -1044,6 +1041,27 @@ function requiredRulesFor(mode) {
     required.push(["flatRate", "Fixed Rate (%)", "positive"]);
   }
   return required;
+}
+
+// Advisory (non-blocking) fields: recommended for a complete KFS, but they do NOT
+// block printing/downloading. The GRO contact details can be filled in manually later.
+const ADVISORY_RULES = [
+  ["q_groName", "Name of Grievance Redressal Officer (GRO)"],
+  ["q_groPhone", "Phone of Grievance Redressal Officer (GRO)", "phone"],
+  ["q_groEmail", "Email of Grievance Redressal Officer (GRO)", "email"],
+];
+
+// Returns [{ id, msg }] advisory notes for recommended fields that are empty or, when
+// filled, have an invalid format. These are surfaced as a soft warning, never blocking.
+function advisoryProblems() {
+  const out = [];
+  ADVISORY_RULES.forEach(([id, label, rule]) => {
+    const val = str(id);
+    if (val === "") { out.push({ id, msg: label + " — not filled (optional, can be added manually later)" }); return; }
+    if (rule === "email" && !EMAIL_RE.test(val)) out.push({ id, msg: label + " — invalid email format" });
+    else if (rule === "phone" && !PHONE_RE.test(val)) out.push({ id, msg: label + " — invalid phone number" });
+  });
+  return out;
 }
 
 // Validate a value accessor (s) against the rules for the given mode.
@@ -1118,7 +1136,7 @@ function validateForm() {
   const required = requiredRulesFor(str("rateMode"));
 
   // clear previous flags
-  document.querySelectorAll(".form-panel .invalid").forEach(el => el.classList.remove("invalid"));
+  document.querySelectorAll(".form-panel .invalid, .form-panel .warn").forEach(el => el.classList.remove("invalid", "warn"));
 
   const emailRe = EMAIL_RE;
   const phoneRe = PHONE_RE;
@@ -1160,6 +1178,23 @@ function validateForm() {
     problems.push(it.msg);
   });
 
+  // Force the user to set the actual Date of Disbursement instead of leaving the
+  // prefilled placeholder default — the whole schedule (and APR) keys off this date.
+  const disbEl = document.getElementById("disbursalDate");
+  if (disbEl && disbEl.value && DEFAULTS.disbursalDate && disbEl.value === DEFAULTS.disbursalDate) {
+    disbEl.classList.add("invalid");
+    problems.push("Date of Disbursement — please set the actual disbursement date (it is still the default).");
+  }
+
+  // Advisory (non-blocking) checks: recommended fields that are empty / mis-formatted.
+  // These are highlighted amber and listed as a note, but never prevent printing.
+  const advisories = advisoryProblems();
+  advisories.forEach(a => fieldControl(a.id)?.classList.add("warn"));
+  const advisoryHtml = advisories.length
+    ? `<div class="vb-advisory"><span class="vb-adv-title">Note — recommended field${advisories.length > 1 ? "s" : ""} not filled (optional, you can add ${advisories.length > 1 ? "these" : "this"} manually later):</span>` +
+      `<ul>${advisories.map(a => `<li>${a.msg}</li>`).join("")}</ul></div>`
+    : "";
+
   const box = document.getElementById("validateMsg");
   const fab = document.getElementById("fabValidate");
   fab.classList.remove("fab-error", "fab-ok");
@@ -1170,14 +1205,15 @@ function validateForm() {
     box.innerHTML =
       `<span class="vb-title">${problems.length} issue${problems.length > 1 ? "s" : ""} to fix:</span>` +
       `<ul>${problems.map(m => `<li>${m}</li>`).join("")}</ul>` +
-      `<span>Please correct the highlighted fields before printing.</span>`;
+      `<span>Please correct the highlighted fields before printing.</span>` +
+      advisoryHtml;
     fab.classList.add("fab-error");
     setOutputButtons(false, "Fix all highlighted fields, then Validate to enable this");
     const first = document.querySelector(".form-panel .invalid");
     if (first) first.scrollIntoView({ behavior: "smooth", block: "center" });
   } else {
     box.classList.add("ok");
-    box.innerHTML = `<span class="vb-title">&#10003; All mandatory fields are filled.</span>The KFS below is ready to download / print.`;
+    box.innerHTML = `<span class="vb-title">&#10003; All mandatory fields are filled.</span>The KFS below is ready to download / print.` + advisoryHtml;
     fab.classList.add("fab-ok");
     setOutputButtons(true);
   }

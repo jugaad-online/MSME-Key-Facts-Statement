@@ -222,6 +222,13 @@ legend { font-weight: 600; color: var(--accent-dark); padding: 0 6px; font-size:
   font-weight: 600;
   color: var(--ink);
 }
+/* Field names whose value feeds into the APR computation — flagged maroon red.
+   Only the label text is recolored; inputs/selects keep their own (--ink) colour. */
+.form-panel label.apr-dep,
+.fee-matrix .fm-charge.apr-dep {
+  color: #800000;
+  font-weight: 600;
+}
 .fee-matrix .fm-head {
   font-size: 11px;
   font-weight: 700;
@@ -276,6 +283,13 @@ legend { font-weight: 600; color: var(--accent-dark); padding: 0 6px; font-size:
   box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.18);
   background: #fff5f5;
 }
+/* Advisory (non-blocking) highlight: recommended but optional fields. */
+.form-panel .warn,
+.form-panel .warn:focus {
+  border-color: #f59e0b !important;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18);
+  background: #fffaf0;
+}
 .validate-box {
   margin-bottom: 14px;
   padding: 12px 14px;
@@ -296,6 +310,12 @@ legend { font-weight: 600; color: var(--accent-dark); padding: 0 6px; font-size:
 .validate-box .vb-title { font-weight: 700; display: block; margin-bottom: 6px; }
 .validate-box ul { margin: 0; padding-left: 18px; }
 .validate-box li { margin: 2px 0; }
+.validate-box .vb-advisory {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(0, 0, 0, 0.18);
+}
+.validate-box .vb-adv-title { font-weight: 700; display: block; margin-bottom: 4px; color: #92600a; }
 
 .fab {
   position: fixed;
