@@ -309,7 +309,6 @@ function calculate(inp) {
   // Everything is derived from the Date of Disbursement. The first instalment falls on the
   // END of the disbursement month itself; its interest covers only the days from the
   // disbursement date to that month-end. Any MoP shifts the first EPI further out.
-  const commenceExplicit = false;
   const commenceMonths = inp.moratoriumMonths || 0;
 
   // Accrual base date for the Actual/365 day-count. The Date of Disbursement drives it; when
@@ -439,7 +438,7 @@ function calculate(inp) {
     emi, emiPhase1, emiPhase2, k, rp2, isHybrid,
     reTotal, tpTotal, totalCharges, apr,
     emi25, tenure25, totalInterest, netDisbursed, totalPayable,
-    schedule, commencementDate, daysToCommence: commenceDays, commenceExplicit,
+    schedule, commencementDate, daysToCommence: commenceDays,
     amountWords: numberToWordsIndian(P),
   };
 }
@@ -501,7 +500,7 @@ function buildKfsHtml(inp, res) {
             <td>${res.isHybrid
               ? `Fixed phase: ₹ ${fmtMoney(res.emiPhase1)}<br>Floating phase: ₹ ${fmtMoney(res.emiPhase2)}`
               : `₹ ${fmtMoney(res.emi)}`}</td>
-            <td>${res.commencementDate}<br><span class="muted">(after ${res.daysToCommence} days${(!res.commenceExplicit && res.moratoriumMonths) ? ` + ${res.moratoriumMonths}-month MoP` : ""})</span></td>
+            <td>${res.commencementDate}<br><span class="muted">(after ${res.daysToCommence} days${res.moratoriumMonths ? ` + ${res.moratoriumMonths}-month MoP` : ""})</span></td>
           </tr>
         </table>
       </td></tr>
@@ -617,7 +616,7 @@ function buildKfsHtml(inp, res) {
       <tr><td class="sn sub">a)</td><td class="sub-lbl">No. of instalments for payment of principal, in case of non-equated periodic loans</td><td>${inp.principalInstalments || "-"}</td></tr>
       <tr><td class="sn sub">b)</td><td class="sub-lbl">Type of EPI; Amount of each EPI (in Rupees) and nos. of EPIs (e.g. no. of EMIs in case of monthly instalments) (Sl No. 5 of the KFS template &ndash; Part 1)</td><td>${inp.frequency}; ₹ ${fmtMoney(res.emi)}; ${res.n}</td></tr>
       <tr><td class="sn sub">c)</td><td class="sub-lbl">No. of instalments for payment of capitalised interest, if any</td><td>${res.morPeriods ? (res.interestServiced ? `Nil (interest serviced monthly during the ${res.moratoriumMonths}-month MoP)` : `${res.morPeriods} (interest capitalised during ${res.moratoriumMonths}-month MoP)`) : (inp.capitalisedInstalments || "-")}</td></tr>
-      <tr><td class="sn sub">d)</td><td class="sub-lbl">Commencement of repayments, post sanction (Sl No. 5 of the KFS template &ndash; Part 1)</td><td>${res.daysToCommence} days${(!res.commenceExplicit && res.moratoriumMonths) ? ` + ${res.moratoriumMonths}-month MoP` : ""} (${res.commencementDate})</td></tr>
+      <tr><td class="sn sub">d)</td><td class="sub-lbl">Commencement of repayments, post sanction (Sl No. 5 of the KFS template &ndash; Part 1)</td><td>${res.daysToCommence} days${res.moratoriumMonths ? ` + ${res.moratoriumMonths}-month MoP` : ""} (${res.commencementDate})</td></tr>
       <tr><td class="sn main">3</td><td>Interest rate type (fixed or floating or hybrid) (Sl No. 6 of the KFS template &ndash; Part 1)</td><td>${inp.rateMode}</td></tr>
       <tr><td class="sn main">4</td><td>Rate of Interest (Sl No. 6 of the KFS template &ndash; Part 1)</td><td>${res.isHybrid ? `${fmtPct(inp.hybridFixedRate)} (fixed ${inp.hybridFixedYears} yr${inp.hybridFixedYears == 1 ? "" : "s"}), then ${fmtPct(inp.floatRate)} (floating)` : fmtPct(res.r)}</td></tr>
       <tr><td class="sn main">5</td><td>Total Interest Amount to be charged during the entire tenor of the loan as per the rate prevailing on sanction date (in Rupees)</td><td>₹ ${fmtMoney(res.totalInterest)}</td></tr>
