@@ -528,25 +528,6 @@ legend { font-weight: 600; color: var(--accent-dark); padding: 0 6px; font-size:
 .schedule thead th { position: sticky; top: 0; }
 .schedule tr.mor-row { background: #fff7e6; }
 
-.decl { line-height: 1.6; font-size: 12.5px; margin: 8px 0; text-align: justify; text-justify: inter-word; text-indent: 2em; }
-.decl.no-indent { text-indent: 0; }
-/* Tear-off divider between the declaration and the acknowledgement slip. */
-.ack-cut {
-  position: relative;
-  border-top: 2px dashed #9aa7b6;
-  margin: 22px 0 6px;
-  text-align: left;
-}
-.ack-cut span {
-  position: absolute;
-  top: -11px;
-  left: 0;
-  background: #fff;
-  padding-right: 6px;
-  font-size: 16px;
-  color: #6b7785;
-}
-
 /* ---------- Print ---------- */
 /* PDF export (html2pdf) — mirror the print page-break logic so Download/Share
    paginate exactly like Print instead of slicing the tall flex layout (blank bands). */
@@ -565,12 +546,11 @@ body.pdf-export .kfs-page {
   break-before: page;
 }
 body.pdf-export .kfs-page:first-of-type { page-break-before: avoid; break-before: auto; }
-/* Short annexes stay on one page; the long schedule and declaration may flow across pages. */
-body.pdf-export .kfs-page:not(#annexure):not(#declaration) { page-break-inside: avoid; break-inside: avoid; }
+/* Short annexes stay on one page; the long repayment schedule may flow across pages. */
+body.pdf-export .kfs-page:not(#annexure) { page-break-inside: avoid; break-inside: avoid; }
 body.pdf-export .schedule tr { page-break-inside: avoid; break-inside: avoid; }
 /* Never split a section's title/heading block across a page boundary. */
-body.pdf-export .kfs-title, body.pdf-export .ack-cut { page-break-inside: avoid; break-inside: avoid; }
-body.pdf-export .decl { page-break-inside: avoid; break-inside: avoid; orphans: 3; widows: 3; }
+body.pdf-export .kfs-title { page-break-inside: avoid; break-inside: avoid; }
 body.pdf-export .no-print { display: none !important; }
 /* Compact sizing (same as print) so each section fits an A4 page when rasterized. */
 body.pdf-export .kfs-table { font-size: 10px; }
@@ -592,10 +572,9 @@ body.pdf-export .kfs-sub { font-size: 12px; }
     break-before: page;
   }
   .kfs-page:first-of-type { page-break-before: avoid; break-before: auto; }
-  /* Keep each short annex on a single page; the long schedule/declaration may flow. */
-  .kfs-page:not(#annexure):not(#declaration) { page-break-inside: avoid; break-inside: avoid; }
-  .kfs-title, .ack-cut { page-break-inside: avoid; break-inside: avoid; }
-  .decl { page-break-inside: avoid; break-inside: avoid; orphans: 3; widows: 3; }
+  /* Keep each short annex on a single page; the long repayment schedule may flow. */
+  .kfs-page:not(#annexure) { page-break-inside: avoid; break-inside: avoid; }
+  .kfs-title { page-break-inside: avoid; break-inside: avoid; }
   .kfs-table { font-size: 10px; }
   .kfs-table td, .kfs-table th { padding: 3px 5px; }
   .schedule thead { display: table-header-group; }

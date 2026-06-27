@@ -20,21 +20,6 @@ const Fin = {
     return Math.log(num / den) / Math.log(1 + rate);
   },
 
-  // Cumulative interest paid between period `start` and `end` (inclusive).
-  // Returns a NEGATIVE number like Excel CUMIPMT.
-  cumipmt(rate, nper, pv, start, end, type = 0) {
-    const pay = this.pmt(rate, nper, pv, 0, type);
-    let bal = pv;
-    let interestSum = 0;
-    for (let p = 1; p <= end; p++) {
-      const interest = type === 0 ? bal * rate : 0;
-      const principal = pay + interest; // pay is negative
-      if (p >= start && p <= end) interestSum += interest;
-      bal += principal;
-    }
-    return -interestSum;
-  },
-
   // Effective rate per period via Newton-Raphson. Mirrors Excel RATE.
   rate(nper, pmt, pv, fv = 0, type = 0, guess = 0.1) {
     const MAX_ITER = 200;
@@ -1388,44 +1373,42 @@ async function generatePdfBlob() {
   };
   // Apply print-style pagination during capture, then restore the screen layout.
   document.body.classList.add("pdf-export");
-  // #region agent log
+
+  // Shrink-to-fit: keep every section EXCEPT the long repayment schedule (Annexure-A(2))
+  // on a single A4 page. html2pdf maps each page's CSS-pixel width to the usable A4 width,
+  // so a page fits one sheet when its height ≤ the usable height in that same scale. Any
+  // page taller than that is scaled down (transform) just enough to fit; the schedule may
+  // still flow across pages. The inline styles are reverted in the finally block.
+  const shrunk = [];
   try {
-    const PX_PER_MM = 96 / 25.4;
     const usableWmm = 210 - 2 * opt.margin;
     const usableHmm = 297 - 2 * opt.margin;
-    const elWpx = el.scrollWidth || el.offsetWidth || 1;
-    const mmPerPx = usableWmm / elWpx;
-    const beforeSel = opt.pagebreak && opt.pagebreak.before;
-    const beforeIds = beforeSel ? Array.from(el.querySelectorAll(beforeSel)).map(x => x.id) : [];
-    const pages = Array.from(el.querySelectorAll(".kfs-page")).map(p => {
-      const cs = getComputedStyle(p);
-      const titles = Array.from(p.querySelectorAll(".kfs-title")).map(t => ({
-        txt: (t.textContent || "").trim().slice(0, 20),
-        topPx: t.offsetTop, hPx: t.offsetHeight,
-      }));
-      return {
-        id: p.id, hPx: p.offsetHeight,
-        pdfHmm: Math.round(p.offsetHeight * mmPerPx * 10) / 10,
-        breakBefore: cs.breakBefore, pageBreakBefore: cs.pageBreakBefore,
-        breakInside: cs.breakInside, titles,
-      };
+    const elWpx = el.offsetWidth || el.scrollWidth || 1;
+    const maxPageHpx = usableHmm * (elWpx / usableWmm);
+    el.querySelectorAll(".kfs-page:not(#annexure)").forEach(p => {
+      const h = p.offsetHeight;
+      if (h > maxPageHpx) {
+        const scale = Math.max(0.5, maxPageHpx / h);
+        p.style.transformOrigin = "top left";
+        p.style.transform = `scale(${scale})`;
+        p.style.height = (h * scale) + "px";
+        p.style.overflow = "hidden";
+        shrunk.push(p);
+      }
     });
-    fetch('http://127.0.0.1:7700/ingest/e2db97ea-78fe-4881-bdf6-14640750a456', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '62b464' }, body: JSON.stringify({ sessionId: '62b464', runId: 'post-fix6', hypothesisId: 'J', location: 'kfs.js:1080', message: 'pdf export page metrics', data: { h2pdfVersion: (window.html2pdf && (html2pdf.version || (html2pdf.Worker && 'present'))) || 'n/a', pagebreak: opt.pagebreak, beforeSel, beforeIds, margin: opt.margin, elWpx, usableWmm, usableHmm, PX_PER_MM, pages }, timestamp: Date.now() }) }).catch(() => { });
-  } catch (e) {
-    fetch('http://127.0.0.1:7700/ingest/e2db97ea-78fe-4881-bdf6-14640750a456', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '62b464' }, body: JSON.stringify({ sessionId: '62b464', runId: 'post-fix2', hypothesisId: 'D,F', location: 'kfs.js:1080', message: 'pdf export metrics ERROR', data: { err: String(e) }, timestamp: Date.now() }) }).catch(() => { });
-  }
-  // #endregion
+  } catch (e) { /* fit is best-effort; fall back to default pagination */ }
+
   try {
     const worker = html2pdf().set(opt).from(el).toPdf();
     const pdf = await worker.get("pdf");
-    // #region agent log
-    try {
-      const numPages = pdf.internal.getNumberOfPages();
-      fetch('http://127.0.0.1:7700/ingest/e2db97ea-78fe-4881-bdf6-14640750a456', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '62b464' }, body: JSON.stringify({ sessionId: '62b464', runId: 'post-fix6', hypothesisId: 'J', location: 'kfs.js:generatePdfBlob', message: 'actual pdf page count', data: { numPages, pageW: pdf.internal.pageSize.getWidth(), pageH: pdf.internal.pageSize.getHeight() }, timestamp: Date.now() }) }).catch(() => { });
-    } catch (e) { }
-    // #endregion
     return pdf.output("blob");
   } finally {
+    shrunk.forEach(p => {
+      p.style.transform = "";
+      p.style.transformOrigin = "";
+      p.style.height = "";
+      p.style.overflow = "";
+    });
     document.body.classList.remove("pdf-export");
   }
 }
