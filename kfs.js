@@ -656,9 +656,9 @@ function buildKfsHtml(inp, res) {
   };
   const rows = res.schedule.map(s => `
       <tr${s.moratorium ? ' class="mor-row"' : ""}>
-        <td>${s.no}${s.moratorium ? ' <span class="muted">(MoP)</span>' : ""}</td>
+        <td>${s.no}</td>
         <td>₹ ${fmtMoney(s.outstanding)}</td>
-        <td>${s.moratorium ? (s.interestPaid ? '<span class="muted">Interest only</span>' : '<span class="muted">Interest capitalised</span>') : "₹ " + fmtMoney(s.principal)}</td>
+        <td>${s.moratorium ? '<span class="muted">MoP<sup>&dagger;</sup></span>' : "₹ " + fmtMoney(s.principal)}</td>
         <td>₹ ${fmtMoney(s.interest)}</td>
         <td>${morInstalmentCell(s)}</td>
       </tr>`).join("");
@@ -666,7 +666,7 @@ function buildKfsHtml(inp, res) {
   const annexure = `
   <article class="kfs-page" id="annexure">
     <div class="kfs-annex">Annexure-A(2)</div>
-    <div class="kfs-title"><div class="kfs-main">ILLUSTRATIVE REPAYMENT SCHEDULE UNDER EQUATED PERIODIC INSTALMENT</div><div class="kfs-sub">For the hypothetical loan illustrated in Annexure-A(1)</div></div>
+    <div class="kfs-title"><div class="kfs-main">ILLUSTRATIVE REPAYMENT SCHEDULE UNDER EQUATED PERIODIC INSTALMENT</div><div class="kfs-sub">For the hypothetical loan illustrated in Annexure-A(1)</div><div class="kfs-cite"><sup>&dagger;</sup> MoP = Moratorium Period &mdash; no principal is repaid during this period; ${res.interestServiced ? "interest is serviced (paid) monthly by the borrower." : "interest is capitalised to the outstanding principal each month."}</div></div>
     <table class="kfs-table schedule">
       <thead>
         <tr class="subhead">
