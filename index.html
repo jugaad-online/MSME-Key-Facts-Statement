@@ -95,11 +95,20 @@
             <input type="number" id="moratoriumMonths" value="12" min="0" step="1" />
           </label>
         </div>
-        <label class="apr-dep">Pay interest monthly during MoP?<span class="help" title="Yes = the customer services (pays) the interest every month during the MoP, so the principal stays unchanged. No = interest accrues and is capitalised (added to the principal), increasing later EPIs. Only relevant when a MoP is set.">?</span>
+        <label class="apr-dep" id="payInterestMonthlyField">Pay interest monthly during MoP?<span class="help" title="Yes = the customer services (pays) the interest every month during the MoP, so the principal stays unchanged. No = interest accrues and is capitalised (added to the principal), increasing later EPIs. Only relevant when a MoP is set.">?</span>
           <select id="payInterestMonthly">
             <option value="No">No &mdash; capitalise interest (add to principal)</option>
             <option value="Yes" selected>Yes &mdash; pay interest monthly (principal unchanged)</option>
           </select>
+        </label>
+        <label id="moratoriumInstalmentField">Instalment during Moratorium<span class="help" title="Describes the nature of the instalment payable during the Moratorium Period (MoP), as disclosed in the KFS. 'Pay interest only' = only interest is serviced; 'Computed interest' = the computed (accrued) interest; or choose 'Other' to enter your own wording. Shown only when interest is paid monthly during the MoP. This is a descriptive label only and does not change the calculation.">?</span>
+          <select id="moratoriumInstalment" class="combo">
+            <option value="Pay interest only" selected>Pay interest only</option>
+            <option value="Computed interest">Computed interest</option>
+            <option value="Add 0 (Zero) to instalment">Add 0 (Zero) to instalment</option>
+            <option value="__other__">Other (specify)</option>
+          </select>
+          <input type="text" id="moratoriumInstalment_other" class="combo-other hidden" placeholder="Specify instalment during moratorium" />
         </label>
         <div class="field-pair">
           <label class="apr-dep">Instalment Frequency

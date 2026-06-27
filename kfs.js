@@ -219,6 +219,7 @@ function buildInput(s, n) {
     tenureMonths: n("tenureMonths"),
     moratoriumMonths: n("moratoriumMonths"),
     payInterestMonthly: s("payInterestMonthly") || "No",
+    moratoriumInstalment: s("moratoriumInstalment") || "Pay interest only",
     // Derived (no longer entered): equated loans repay principal via the EPIs, so this is
     // always "Not applicable"; capitalised-interest instalments come from the MoP; and the
     // instalment method here is always monthly reducing balance.
@@ -484,7 +485,7 @@ function buildKfsHtml(inp, res) {
       </td></tr>
       <tr><td class="sn main">2</td><td class="lbl">Sanctioned Loan amount (in Rupees)</td><td class="val" colspan="2">₹ ${fmtMoney(res.P)} <span class="muted">(${res.amountWords})</span></td></tr>
       <tr><td class="sn main">3</td><td class="lbl">Disbursal schedule<br><span class="muted">(i) Disbursement in stages or 100% upfront. (ii) If it is stage wise, mention the clause of loan agreement having relevant details.</span></td><td class="val" colspan="2">${inp.disbursalSchedule}${inp.disbursalClause ? " &mdash; " + inp.disbursalClause : ""}</td></tr>
-      <tr id="p1-s4"><td class="sn main">4</td><td class="lbl">Loan term (year/months/days)</td><td class="val" colspan="2">${tenureTxt}${res.moratoriumMonths ? ` <span class="muted">(includes a MoP of ${res.moratoriumMonths} month${res.moratoriumMonths == 1 ? "" : "s"})</span>` : ""}</td></tr>
+      <tr id="p1-s4"><td class="sn main">4</td><td class="lbl">Loan term (year/months/days)</td><td class="val" colspan="2">${tenureTxt}${res.moratoriumMonths ? ` <span class="muted">(includes a MoP of ${res.moratoriumMonths} month${res.moratoriumMonths == 1 ? "" : "s"}${res.interestServiced && inp.moratoriumInstalment ? `; instalment during MoP: ${inp.moratoriumInstalment}` : ""})</span>` : ""}</td></tr>
       <tr><td class="sn main">5</td><td class="lbl" colspan="3">Instalment details</td></tr>
       <tr><td colspan="4" class="nestcell">
         <table class="kfs-table nested">
@@ -637,13 +638,27 @@ function buildKfsHtml(inp, res) {
     ${foot("Annexure-A(1) &middot; Illustration for computation of APR for MSME Loans", 3)}
   </article>`;
 
+  // Instalment shown for serviced-interest moratorium rows depends on the chosen
+  // "Instalment during Moratorium" option (display-only; the computation is unchanged):
+  //  • "Pay interest only"      -> the text "Pay interest only"
+  //  • "Computed interest"      -> the computed interest amount (as accrued)
+  //  • "Add 0 (Zero) to instalment" -> ₹ 0
+  //  • any other (custom) text  -> shown verbatim
+  const morLabel = inp.moratoriumInstalment || "";
+  const morInstalmentCell = (s) => {
+    if (!s.moratorium || !s.interestPaid) return "₹ " + fmtMoney(s.instalment);
+    if (morLabel === "Pay interest only") return '<span class="muted">Pay interest only</span>';
+    if (morLabel === "Add 0 (Zero) to instalment") return "₹ " + fmtMoney(0);
+    if (morLabel === "Computed interest" || !morLabel) return "₹ " + fmtMoney(s.instalment);
+    return `<span class="muted">${morLabel}</span>`;
+  };
   const rows = res.schedule.map(s => `
       <tr${s.moratorium ? ' class="mor-row"' : ""}>
         <td>${s.no}${s.moratorium ? ' <span class="muted">(MoP)</span>' : ""}</td>
         <td>₹ ${fmtMoney(s.outstanding)}</td>
         <td>${s.moratorium ? (s.interestPaid ? '<span class="muted">Interest only</span>' : '<span class="muted">Interest capitalised</span>') : "₹ " + fmtMoney(s.principal)}</td>
         <td>₹ ${fmtMoney(s.interest)}</td>
-        <td>₹ ${fmtMoney(s.instalment)}</td>
+        <td>${morInstalmentCell(s)}</td>
       </tr>`).join("");
 
   const annexure = `
@@ -748,6 +763,18 @@ function toggleCombos() {
     const other = document.getElementById(sel.id + "_other");
     if (other) other.classList.toggle("hidden", sel.value !== "__other__");
   });
+}
+
+// Show/hide the MoP-related fields based on the Moratorium Period:
+//  - With no MoP (<= 0) the "Pay interest monthly during MoP?" question is irrelevant, so hide it.
+//  - "Instalment during Moratorium" is only meaningful when there IS a MoP and interest is
+//    serviced monthly during it ("Pay interest monthly during MoP?" = Yes).
+function toggleMoratoriumInstalment() {
+  const hasMoP = (parseFloat(str("moratoriumMonths")) || 0) > 0;
+  const payField = document.getElementById("payInterestMonthlyField");
+  if (payField) payField.classList.toggle("hidden", !hasMoP);
+  const instField = document.getElementById("moratoriumInstalmentField");
+  if (instField) instField.classList.toggle("hidden", !(hasMoP && str("payInterestMonthly") === "Yes"));
 }
 
 /* =================================================================
@@ -958,6 +985,7 @@ function resetToDefaults() {
   formatAmount();
   toggleRateMode();
   toggleCombos();
+  toggleMoratoriumInstalment();
   refresh();
 }
 
@@ -1272,7 +1300,7 @@ function setOutputButtons() {
 // Canonical column order for the CSV template and import. Header == field id.
 const CSV_COLUMNS = [
   "proposalNo", "loanType", "amount", "sanctionDate", "disbursalDate", "disbursalSchedule", "disbursalClause",
-  "tenureMonths", "moratoriumMonths", "payInterestMonthly", "frequency", "roundEmi",
+  "tenureMonths", "moratoriumMonths", "payInterestMonthly", "moratoriumInstalment", "frequency", "roundEmi",
   "rateMode", "hybridFixedRate", "hybridFixedYears", "benchmark", "benchmarkRate", "spread", "resetMonths", "flatRate",
   "re_processing", "re_insurance", "re_valuation", "re_other",
   "tp_processing", "tp_insurance", "tp_valuation", "tp_other",
@@ -1623,6 +1651,7 @@ document.addEventListener("DOMContentLoaded", () => {
       setOutputButtons();
       toggleRateMode();
       toggleCombos();
+      toggleMoratoriumInstalment();
       saveInputs();
       refresh();
     };
@@ -1666,6 +1695,7 @@ document.addEventListener("DOMContentLoaded", () => {
       formatAmount();
       toggleRateMode();
       toggleCombos();
+      toggleMoratoriumInstalment();
       setOutputButtons();
       saveInputs();
       refresh();
@@ -1767,5 +1797,6 @@ document.addEventListener("DOMContentLoaded", () => {
   formatAmount();
   toggleRateMode();
   toggleCombos();
+  toggleMoratoriumInstalment();
   refresh();
 });
