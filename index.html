@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MSME KFS Builder - RBI Key Facts Statement (Annexure-A)</title>
+  <link rel="stylesheet" href="styles.css?v=20260626zx" />
+</head>
+<body>
+  <header class="app-header no-print">
+    <div class="brand">
+      <h1>MSME KFS Builder</h1>
+      <span>RBI Key Facts Statement (Annexure-A) &middot; MSME loans &middot; Circular RBI/2024-25/18 dated April 15, 2024</span>
+    </div>
+    <div class="actions">
+      <button id="btnMobile" type="button" class="mobile-btn" title="Switch to mobile view" aria-pressed="false" aria-label="Switch to mobile view">&#128241;</button>
+      <button id="btnGuide" type="button" class="guide-btn" title="How to use KFS Builder" aria-label="Help / Guide">?</button>
+      <button id="btnReset" type="button" class="reset-btn" title="Clear saved data and reset all fields to defaults" aria-label="Reset all fields to defaults">&#8634;</button>
+      <button id="btnDownload" type="button" class="act-btn" disabled title="Download the KFS as a PDF file to your device" aria-label="Download PDF to device">&#11015;</button>
+      <button id="btnPrint" type="button" class="act-btn" disabled title="Print the KFS (use 'Save as PDF' in the print dialog)" aria-label="Print as PDF">&#128424;</button>
+      <button id="btnShare" type="button" class="act-btn" disabled title="Share the KFS as a PDF file" aria-label="Share as PDF">&#128228;</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- ============ INPUT FORM ============ -->
+    <section class="form-panel no-print" aria-label="Loan inputs">
+      <h2>Loan Inputs</h2>
+      <div id="validateMsg" class="validate-box hidden" role="alert"></div>
+
+      <fieldset class="csv-panel">
+        <legend>Bulk Import (CSV) &mdash; multiple loans</legend>
+        <div class="csv-actions">
+          <button type="button" id="btnCsvTemplate" class="csv-btn">&#8681; Download CSV template</button>
+          <label class="csv-btn csv-upload" for="csvFile">&#8682; Import CSV
+            <input type="file" id="csvFile" accept=".csv,text/csv" />
+          </label>
+        </div>
+        <p class="csv-hint muted">Download the template (it ships with two example rows &mdash; an <b>ECLGS 5.0</b> and an <b>MSME Term Loan</b>), fill <b>one row per loan</b>, then import to generate the full KFS (Annexure-A Parts 1&amp;2, Annexure-A(1) &amp; Annexure-A(2)) for every loan at once. Each row uses the exact values you enter (the product auto-fill applies only in the form). Every row is validated on import; rows with invalid/missing data are listed and skipped.</p>
+        <div id="csvReport" class="csv-report hidden" role="status"></div>
+      </fieldset>
+
+      <fieldset data-target="p1-s1">
+        <legend>Part-1 &middot; Loan, Amount &amp; Disbursal (Sl. 1&ndash;3)</legend>
+        <label>Loan Proposal / Account No.<span class="help" title="Unique loan account or proposal reference number assigned by the lender.">?</span>
+          <input type="text" id="proposalNo" value="" />
+        </label>
+        <label>Type of Loan<span class="help" title="MSME credit facility/product. Selecting a product auto-fills indicative defaults (tenure, rate, moratorium, fees, charges) per RBI/typical bank norms — adjust as needed. ECLGS 5.0: additional working capital term loan, 100% NCGTC-guaranteed, EBLR+0.75% (cap 9%), 5-yr tenure incl. 1-yr moratorium.">?</span>
+          <select id="loanType" class="combo">
+            <option selected>ECLGS 5.0 (Emergency Credit Line Guarantee Scheme)</option>
+            <option>MSME Term Loan</option>
+            <option>MSME Working Capital Loan</option>
+            <option>Cash Credit / Overdraft (CC/OD)</option>
+            <option>Machinery / Equipment Loan</option>
+            <option>MSME Loan Against Property</option>
+            <option>MUDRA Loan (Shishu / Kishore / Tarun)</option>
+            <option>Stand-Up India Loan</option>
+            <option>CGTMSE-backed MSME Loan</option>
+            <option>Bill / Invoice Discounting</option>
+            <option>Letter of Credit / Bank Guarantee</option>
+            <option value="__other__">Other (specify)</option>
+          </select>
+          <input type="text" id="loanType_other" class="combo-other hidden" placeholder="Specify type of loan" />
+        </label>
+        <label>Sanctioned Amount (₹)<span class="help" title="Total loan amount approved/sanctioned by the lender, in Rupees.">?</span>
+          <input type="text" id="amount" inputmode="numeric" value="" />
+          <span id="amountWords" class="amount-words"></span>
+        </label>
+        <label>Date of Disbursement<span class="help" title="Date on which the loan amount is released to the borrower.">?</span>
+          <input type="date" id="disbursalDate" value="2026-05-08" />
+        </label>
+        <label>Disbursement Schedule<span class="help" title="Whether the loan is released 100% upfront or in stages/tranches.">?</span>
+          <select id="disbursalSchedule" class="combo">
+            <option value="100 % Upfront" selected>100% Upfront</option>
+            <option value="In stages">In stages</option>
+            <option value="__other__">Other (specify)</option>
+          </select>
+          <input type="text" id="disbursalSchedule_other" class="combo-other hidden" placeholder="Specify disbursement schedule" />
+        </label>
+        <label>Stage-wise clause (if staged)<span class="help" title="Reference clause in the loan agreement governing stage-wise disbursement.">?</span>
+          <input type="text" id="disbursalClause" value="" placeholder="Clause of loan agreement" />
+        </label>
+      </fieldset>
+
+      <fieldset data-target="p1-s4">
+        <legend>Part-1 &middot; Loan Term &amp; Instalments (Sl. 4&ndash;5)<span class="help" title="Tenure (Months): total loan repayment period in months (e.g. 120 = 10 years). • Moratorium Period [MoP] (months): initial period during which no principal EPI is paid (set 0 for no MoP); interest during the MoP is either paid monthly or capitalised, per the option below. • Instalment Frequency: how often instalments are paid (Monthly, Quarterly, Half-Yearly, Annually). • Round off EPI / EMI: round each instalment to the nearest ₹1, ₹10 or ₹100 (or keep paise); any rounding difference is absorbed in the final instalment.">?</span></legend>
+        <div class="field-pair">
+          <label>Tenure (Months)
+            <input type="number" id="tenureMonths" value="60" min="1" max="600" step="1" />
+          </label>
+          <label>Moratorium Period [MoP] (months)
+            <input type="number" id="moratoriumMonths" value="12" min="0" step="1" />
+          </label>
+        </div>
+        <label>Pay interest monthly during MoP?<span class="help" title="Yes = the customer services (pays) the interest every month during the MoP, so the principal stays unchanged. No = interest accrues and is capitalised (added to the principal), increasing later EPIs. Only relevant when a MoP is set.">?</span>
+          <select id="payInterestMonthly">
+            <option value="No">No &mdash; capitalise interest (add to principal)</option>
+            <option value="Yes" selected>Yes &mdash; pay interest monthly (principal unchanged)</option>
+          </select>
+        </label>
+        <div class="field-pair">
+          <label>Instalment Frequency
+            <select id="frequency" class="combo">
+              <option value="Monthly" selected>Monthly (EMI)</option>
+              <option value="Quarterly">Quarterly</option>
+              <option value="Half-Yearly">Half-Yearly</option>
+              <option value="Annually">Annually</option>
+              <option value="__other__">Other (specify)</option>
+            </select>
+            <input type="text" id="frequency_other" class="combo-other hidden" placeholder="Specify frequency" />
+          </label>
+          <label>Round off EPI / EMI
+            <select id="roundEmi">
+              <option value="1" selected>Nearest &#8377;1 (no paise)</option>
+              <option value="0">No rounding (keep paise)</option>
+              <option value="10">Nearest &#8377;10</option>
+              <option value="100">Nearest &#8377;100</option>
+            </select>
+          </label>
+        </div>
+      </fieldset>
+
+      <fieldset data-target="p1-s6">
+        <legend>Part-1 &middot; Interest Rate (Sl. 6&ndash;7)<span class="help" title="Benchmark Rate (%) (B): current value of the reference benchmark, in percent. • Spread (%) (S): margin added by the lender over the benchmark; final rate R = B + S. Under ECLGS 5.0, MSME spread is 0.75% with the final rate capped at 9% p.a.">?</span></legend>
+        <label>Rate Type<span class="help" title="Fixed (constant rate), Floating (benchmark + spread), or Hybrid (fixed for an initial period, then floating).">?</span>
+          <select id="rateMode">
+            <option value="Floating" selected>Floating</option>
+            <option value="Fixed">Fixed</option>
+            <option value="Hybrid">Hybrid (fixed then floating)</option>
+          </select>
+        </label>
+        <div id="hybridBlock" class="hidden">
+          <label>Initial Fixed Rate (%)<span class="help" title="Interest rate applicable during the initial fixed-rate period of a hybrid loan.">?</span>
+            <input type="number" id="hybridFixedRate" value="8.5" step="any" />
+          </label>
+          <label>Fixed-rate period (years)<span class="help" title="Number of years the initial fixed rate applies before the loan switches to floating.">?</span>
+            <input type="number" id="hybridFixedYears" value="3" min="0" step="1" />
+          </label>
+        </div>
+        <div id="floatingBlock">
+          <label>Reference Benchmark<span class="help" title="External benchmark to which a floating rate is linked (e.g. RBI Repo Rate, MCLR).">?</span>
+            <select id="benchmark" class="combo">
+              <option selected>External Benchmark Lending Rate (EBLR)</option>
+              <option>RBI Policy Repo Rate</option>
+              <option>MCLR</option>
+              <option>3-Month T-Bill Rate</option>
+              <option>6-Month T-Bill Rate</option>
+              <option>Base Rate</option>
+              <option value="__other__">Other (specify)</option>
+            </select>
+            <input type="text" id="benchmark_other" class="combo-other hidden" placeholder="Specify benchmark" />
+          </label>
+          <div class="field-pair">
+            <label>Benchmark Rate (%) (B)
+              <input type="number" id="benchmarkRate" value="8.25" step="any" />
+            </label>
+            <label>Spread (%) (S)
+              <input type="number" id="spread" value="0.75" step="any" />
+            </label>
+          </div>
+        </div>
+        <label id="flatRateLabel" class="hidden">Fixed Rate (%)<span class="help" title="Fixed annual interest rate applicable for the entire tenure. Under ECLGS 5.0, the rate is capped at 9% p.a. for banks/FIs (13% for NBFCs).">?</span>
+          <input type="number" id="flatRate" value="9" step="any" />
+        </label>
+        <label>Reset Periodicity (Months)<span class="help" title="How often (in months) a floating rate is reset to the prevailing benchmark.">?</span>
+          <input type="number" id="resetMonths" value="3" step="1" />
+        </label>
+      </fieldset>
+
+      <fieldset data-target="p1-s8">
+        <legend>Part-1 &middot; Fee/Charges &mdash; Payable to RE (Sl. 8A) &amp; Charge Nature</legend>
+        <div class="fee-matrix">
+          <div class="fm-head fm-charge">Charge</div>
+          <div class="fm-head">Amount (₹)</div>
+          <div class="fm-head">One-time / Recurring</div>
+
+          <div class="fm-charge">Processing fees<span class="help" title="One-time fee charged by the lender (Regulated Entity) for processing the loan. ECLGS waives processing charges.">?</span></div>
+          <input type="number" id="re_processing" value="0" step="any" aria-label="Processing fees amount payable to RE" />
+          <select id="type_processing" aria-label="Processing fees nature"><option>One-time</option><option>Recurring</option></select>
+
+          <div class="fm-charge">Insurance charges<span class="help" title="Insurance premium charged by the lender (Regulated Entity).">?</span></div>
+          <input type="number" id="re_insurance" value="0" step="any" aria-label="Insurance charges amount payable to RE" />
+          <select id="type_insurance" aria-label="Insurance charges nature"><option selected>One-time</option><option>Recurring</option></select>
+
+          <div class="fm-charge">Valuation fees<span class="help" title="Property/asset valuation fee charged by the lender (Regulated Entity).">?</span></div>
+          <input type="number" id="re_valuation" value="0" step="any" aria-label="Valuation fees amount payable to RE" />
+          <select id="type_valuation" aria-label="Valuation fees nature"><option>One-time</option><option>Recurring</option></select>
+
+          <div class="fm-charge">Any other<span class="help" title="Any other charge payable directly to the lender (Regulated Entity).">?</span></div>
+          <input type="number" id="re_other" value="0" step="any" aria-label="Any other amount payable to RE" />
+          <select id="type_other" aria-label="Any other nature"><option>One-time</option><option>Recurring</option></select>
+        </div>
+        <p class="csv-hint muted">This One-time / Recurring nature applies to the RE (8A) column of the KFS.</p>
+      </fieldset>
+
+      <fieldset data-target="p1-s8">
+        <legend>Part-1 &middot; Fee/Charges &mdash; Payable to Third Party via RE (Sl. 8B) &amp; Charge Nature</legend>
+        <div class="fee-matrix">
+          <div class="fm-head fm-charge">Charge</div>
+          <div class="fm-head">Amount (₹)</div>
+          <div class="fm-head">One-time / Recurring</div>
+
+          <div class="fm-charge">Processing fees<span class="help" title="Processing-related fee collected by the RE but payable to a third party.">?</span></div>
+          <input type="number" id="tp_processing" value="0" step="any" aria-label="Processing fees amount payable to third party" />
+          <select id="type_b_processing" aria-label="Processing fees nature (third party)"><option>One-time</option><option>Recurring</option></select>
+
+          <div class="fm-charge">Insurance charges<span class="help" title="Insurance premium payable to a third-party insurer, routed through the RE.">?</span></div>
+          <input type="number" id="tp_insurance" value="0" step="any" aria-label="Insurance charges amount payable to third party" />
+          <select id="type_b_insurance" aria-label="Insurance charges nature (third party)"><option selected>One-time</option><option>Recurring</option></select>
+
+          <div class="fm-charge">Valuation fees<span class="help" title="Valuation fee payable to a third-party valuer, routed through the RE.">?</span></div>
+          <input type="number" id="tp_valuation" value="0" step="any" aria-label="Valuation fees amount payable to third party" />
+          <select id="type_b_valuation" aria-label="Valuation fees nature (third party)"><option>One-time</option><option>Recurring</option></select>
+
+          <div class="fm-charge">Any other<span class="help" title="Any other charge payable to a third party through the RE.">?</span></div>
+          <input type="number" id="tp_other" value="0" step="any" aria-label="Any other amount payable to third party" />
+          <select id="type_b_other" aria-label="Any other nature (third party)"><option>One-time</option><option>Recurring</option></select>
+        </div>
+        <p class="csv-hint muted">This One-time / Recurring nature applies to the third-party (8B) column of the KFS.</p>
+      </fieldset>
+
+      <fieldset data-target="p1-s10">
+        <legend>Part-1 &middot; Contingent Charges &mdash; ₹ or % (Sl. 10)</legend>
+        <label>Penal charges (delayed payment)<span class="help" title="Charges levied on delayed/overdue payment of instalments (penal charges, not penal interest).">?</span>
+          <select id="c_penal" class="combo">
+            <option>Nil</option>
+            <option selected>2% p.a. on overdue instalment amount</option>
+            <option>1% per month on overdue amount</option>
+            <option>As per Loan Agreement</option>
+            <option value="__other__">Other (specify)</option>
+          </select>
+          <input type="text" id="c_penal_other" class="combo-other hidden" placeholder="Specify penal charges" />
+        </label>
+        <label>Other penal charges<span class="help" title="Any other penal charges beyond delayed-payment penalties.">?</span>
+          <select id="c_otherpenal" class="combo">
+            <option selected>Nil</option>
+            <option>As per Loan Agreement</option>
+            <option value="__other__">Other (specify)</option>
+          </select>
+          <input type="text" id="c_otherpenal_other" class="combo-other hidden" placeholder="Specify other penal charges" />
+        </label>
+        <label>Foreclosure charges<span class="help" title="Charges for early/full prepayment (foreclosure). Per RBI, Nil on floating-rate term loans to individual and Micro & Small Enterprise (MSE) borrowers.">?</span>
+          <select id="c_foreclosure" class="combo">
+            <option selected>Nil (no foreclosure / prepayment charges &mdash; ECLGS)</option>
+            <option>Nil (floating-rate loan to individual / MSE borrower)</option>
+            <option>2% of outstanding principal</option>
+            <option>4% of outstanding principal</option>
+            <option>As per Loan Agreement</option>
+            <option value="__other__">Other (specify)</option>
+          </select>
+          <input type="text" id="c_foreclosure_other" class="combo-other hidden" placeholder="Specify foreclosure charges" />
+        </label>
+        <label>Switching charges (floating&harr;fixed)<span class="help" title="Charges for switching between floating and fixed interest rate options.">?</span>
+          <select id="c_switching" class="combo">
+            <option selected>Nil</option>
+            <option>0.50% of outstanding principal + applicable GST</option>
+            <option>1% of outstanding principal</option>
+            <option>As per Loan Agreement</option>
+            <option value="__other__">Other (specify)</option>
+          </select>
+          <input type="text" id="c_switching_other" class="combo-other hidden" placeholder="Specify switching charges" />
+        </label>
+        <label>Any other charges<span class="help" title="Any other contingent charges such as cheque/NACH dishonour fees.">?</span>
+          <select id="c_other" class="combo">
+            <option value="" selected></option>
+            <option>Nil</option>
+            <option>NACH/cheque dishonour: ₹500 per instance + GST</option>
+            <option>As per Schedule of Charges</option>
+            <option value="__other__">Other (specify)</option>
+          </select>
+          <input type="text" id="c_other_other" class="combo-other hidden" placeholder="Specify other charges" />
+        </label>
+      </fieldset>
+
+      <fieldset data-target="part2">
+        <legend>Part-2 (Other Qualitative Information)</legend>
+        <label>Cooling-off / look-up period<span class="help" title="Period during which the borrower can exit the loan without penalty on prepayment (mainly for digital loans).">?</span>
+          <select id="q_cooling" class="combo">
+            <option selected>Not applicable</option>
+            <option>3 days from date of disbursement</option>
+            <option>1 day from date of disbursement</option>
+            <option>7 days from date of disbursement</option>
+            <option>As per Loan Agreement</option>
+            <option value="__other__">Other (specify)</option>
+          </select>
+          <input type="text" id="q_cooling_other" class="combo-other hidden" placeholder="Specify cooling-off period" />
+        </label>
+        <label>Recovery agent clause<span class="help" title="Loan agreement clause relating to engagement of recovery agents. Replace with the actual clause reference from your loan agreement.">?</span><input type="text" id="q_recovery" value="As per the Loan Agreement" /></label>
+        <label>Grievance redressal clause<span class="help" title="Loan agreement clause detailing the grievance redressal mechanism. Replace with the actual clause reference from your loan agreement.">?</span><input type="text" id="q_grm" value="As per the Loan Agreement" /></label>
+        <label>Name of Grievance Redressal Officer (GRO)<span class="help" title="Name of the nodal Grievance Redressal Officer who handles borrower complaints.">?</span><input type="text" id="q_groName" value="" /></label>
+        <label>Phone of Grievance Redressal Officer (GRO)<span class="help" title="Contact phone number of the Grievance Redressal Officer.">?</span><input type="text" id="q_groPhone" value="" /></label>
+        <label>Email of Grievance Redressal Officer (GRO)<span class="help" title="Contact email id of the Grievance Redressal Officer.">?</span><input type="text" id="q_groEmail" value="" /></label>
+        <label>Subject to transfer / securitization (Y/N)<span class="help" title="Whether the loan is, or may in future be, transferred to other lenders or securitized.">?</span>
+          <select id="q_transfer"><option>No</option><option>Yes</option></select>
+        </label>
+        <label>Originating RE (co-lending)<span class="help" title="In co-lending, the originating Regulated Entity (lender) along with its funding share.">?</span>
+          <select id="q_origRe" class="combo">
+            <option selected>Not applicable</option>
+            <option value="__other__">Other (specify)</option>
+          </select>
+          <input type="text" id="q_origRe_other" class="combo-other hidden" placeholder="Name of originating RE" />
+        </label>
+        <label>Originating RE proportion<span class="help" title="Funding proportion (%) contributed by the originating Regulated Entity.">?</span><input type="text" id="q_origProp" value="" /></label>
+        <label>Partner RE (co-lending)<span class="help" title="In co-lending, the partner Regulated Entity (lender) along with its funding share.">?</span>
+          <select id="q_partnerRe" class="combo">
+            <option selected>Not applicable</option>
+            <option value="__other__">Other (specify)</option>
+          </select>
+          <input type="text" id="q_partnerRe_other" class="combo-other hidden" placeholder="Name of partner RE" />
+        </label>
+        <label>Partner RE proportion<span class="help" title="Funding proportion (%) contributed by the partner Regulated Entity.">?</span><input type="text" id="q_partnerProp" value="" /></label>
+        <label>Blended rate of interest (%)<span class="help" title="Weighted-average (blended) interest rate across co-lending partners.">?</span>
+          <select id="q_blended" class="combo">
+            <option selected>Not applicable</option>
+            <option value="__other__">Other (specify)</option>
+          </select>
+          <input type="text" id="q_blended_other" class="combo-other hidden" placeholder="Specify blended rate (%)" />
+        </label>
+        <label>LSP (Lending Service Provider) acting as recovery agent (digital loans)<span class="help" title="In digital loans, the Lending Service Provider authorized to act as a recovery agent and approach the borrower.">?</span>
+          <select id="q_lsp" class="combo">
+            <option selected>Not applicable</option>
+            <option value="__other__">Other (specify)</option>
+          </select>
+          <input type="text" id="q_lsp_other" class="combo-other hidden" placeholder="Name of LSP" />
+        </label>
+      </fieldset>
+    </section>
+
+    <!-- ============ KFS OUTPUT ============ -->
+    <section class="kfs-output" id="kfsOutput" aria-label="Key Fact Statement output">
+      <!-- Filled by kfs.js -->
+    </section>
+  </main>
+
+  <button id="fabValidate" class="fab no-print" type="button" title="Check mandatory fields before generating the KFS">
+    <span class="fab-icon">&#10003;</span> Validate
+  </button>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="kfs.js?v=20260626zx"></script>
+</body>
+</html>

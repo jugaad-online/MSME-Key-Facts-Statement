@@ -1,0 +1,568 @@
+:root {
+  --ink: #1a1f2b;
+  --muted: #6b7280;
+  --line: #c9ced6;
+  --accent: #0b5cab;
+  --accent-dark: #084a8a;
+  --bg: #eef1f5;
+  --panel: #ffffff;
+  --head-bg: #f3f6fa;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Roboto, Arial, sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+  font-size: 14px;
+}
+
+/* ---------- Header ---------- */
+.app-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 22px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .15);
+}
+.app-header h1 { margin: 0; font-size: 20px; letter-spacing: .5px; }
+.brand span { font-size: 12px; opacity: .9; }
+.actions button {
+  background: #fff;
+  color: var(--accent-dark);
+  border: none;
+  padding: 10px 18px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 14px;
+}
+.actions button:hover:not(:disabled) { background: #eaf2fb; }
+.actions button:disabled { opacity: 0.5; cursor: not-allowed; }
+.actions .guide-btn,
+.actions .mobile-btn,
+.actions .reset-btn,
+.actions .act-btn {
+  width: 38px; height: 38px; padding: 0;
+  border-radius: 50%;
+  font-size: 18px; font-weight: 800; line-height: 1;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+/* Primary output actions: accent-filled circular icon buttons. */
+.actions .act-btn {
+  background: var(--accent-dark);
+  color: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+.actions .act-btn:hover:not(:disabled) { background: #0b3a73; }
+
+/* ---------- Usage guide modal ---------- */
+.guide-list { margin: 0 0 4px; padding-left: 22px; line-height: 1.55; }
+.guide-list li { margin-bottom: 9px; }
+.guide-q {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 16px; height: 16px; border-radius: 50%;
+  background: var(--accent); color: #fff; font-size: 11px; font-weight: 700;
+}
+.guide-pill {
+  display: inline-block; background: #eef4fc; color: var(--accent-dark);
+  border: 1px solid var(--line); border-radius: 5px;
+  padding: 1px 7px; font-weight: 600; font-size: 12.5px; white-space: nowrap;
+}
+.guide-note { margin-top: 12px; font-size: 12px; color: var(--muted); line-height: 1.45; }
+
+/* ---------- Layout ---------- */
+.layout {
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 20px;
+  padding: 20px;
+  align-items: start;
+}
+@media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+/* ---------- User-toggled mobile view (phone-style frame on any screen) ---------- */
+body.mobile-mode { background: #cfd6df; }
+body.mobile-mode .app-header {
+  flex-wrap: wrap;
+  gap: 8px 10px;
+  padding: 12px 14px;
+  max-width: 480px;
+  margin: 0 auto;
+  border-radius: 0 0 14px 14px;
+}
+body.mobile-mode .app-header h1 { font-size: 17px; }
+body.mobile-mode .brand span { font-size: 11px; }
+body.mobile-mode .actions { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }
+body.mobile-mode .actions button { flex: 1 1 auto; padding: 11px 12px; font-size: 13px; }
+body.mobile-mode .actions .guide-btn,
+body.mobile-mode .actions .mobile-btn,
+body.mobile-mode .actions .reset-btn,
+body.mobile-mode .actions .act-btn { flex: 0 0 auto; }
+
+body.mobile-mode .layout {
+  display: block;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 14px;
+}
+body.mobile-mode .form-panel {
+  position: static;
+  max-height: none;
+  overflow: visible;
+  margin-bottom: 16px;
+}
+/* Larger touch targets; 16px inputs prevent mobile auto-zoom. */
+body.mobile-mode .form-panel input,
+body.mobile-mode .form-panel select { font-size: 16px; padding: 10px 11px; }
+body.mobile-mode .form-panel label { font-size: 13px; }
+
+/* Let the wide KFS tables scroll horizontally instead of overflowing. */
+body.mobile-mode .kfs-page { padding: 16px 12px; overflow-x: auto; }
+body.mobile-mode .kfs-table { font-size: 11px; }
+body.mobile-mode .kfs-main { font-size: 15px; }
+body.mobile-mode .kfs-sub { font-size: 12px; }
+
+body.mobile-mode .fab { right: 16px; bottom: 16px; padding: 12px 18px; font-size: 14px; }
+body.mobile-mode .csv-actions { flex-direction: column; }
+body.mobile-mode .csv-btn { justify-content: center; }
+.mobile-btn.active { background: #d2e6ff; }
+
+/* ---------- Form ---------- */
+.form-panel {
+  background: var(--panel);
+  border-radius: 10px;
+  padding: 16px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .08);
+  position: sticky;
+  top: 80px;
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+}
+.form-panel h2 { margin: 4px 0 12px; font-size: 16px; }
+fieldset {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin: 0 0 14px;
+  padding: 10px 12px 4px;
+}
+/* Give every input "card" in the Loan Inputs panel its own light background. */
+.form-panel fieldset { background: #f6faff; }
+.form-panel fieldset:nth-of-type(1)  { background: #eef4ff; } /* Bulk Import */
+.form-panel fieldset:nth-of-type(2)  { background: #eefcf3; } /* Loan, Amount & Disbursal (Sl. 1-3) */
+.form-panel fieldset:nth-of-type(3)  { background: #fdf0f6; } /* Loan Term & Instalments (Sl. 4-5) */
+.form-panel fieldset:nth-of-type(4)  { background: #f3f0fd; } /* Interest Rate (Sl. 6-7) */
+.form-panel fieldset:nth-of-type(5)  { background: #fffbe9; } /* Fees to RE (8A) & Charge Nature */
+.form-panel fieldset:nth-of-type(6)  { background: #eefbfd; } /* Fees to Third Party (8B) */
+.form-panel fieldset:nth-of-type(7)  { background: #fdeeee; } /* Contingent Charges (Sl. 10) */
+.form-panel fieldset:nth-of-type(8)  { background: #eef0f5; } /* Part-2 - Qualitative */
+legend { font-weight: 600; color: var(--accent-dark); padding: 0 6px; font-size: 13px; }
+.form-panel label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.form-panel input,
+.form-panel select {
+  width: 100%;
+  padding: 7px 9px;
+  margin-top: 3px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--ink);
+  background: #fff;
+}
+.form-panel input:focus,
+.form-panel select:focus { outline: 2px solid #bcd6f3; border-color: var(--accent); }
+.form-panel .combo-other { margin-top: 6px; background: #fffdf5; border-color: #e3c98a; }
+/* Two fields side-by-side on one row (e.g. Benchmark Rate (B) + Spread (S)).
+   align-items:end + margin-top:auto keep the input boxes on the same baseline
+   even when one label wraps to more lines than the other. */
+.form-panel .field-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: end; }
+.form-panel .field-pair label { margin-bottom: 8px; display: flex; flex-direction: column; }
+.form-panel .field-pair label input { margin-top: auto; }
+.form-panel .help {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  margin-left: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  vertical-align: middle;
+  user-select: none;
+}
+.form-panel .help:hover { background: var(--accent-dark); }
+
+/* ---------- Fee / charge nature matrix ---------- */
+.fee-matrix {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1.1fr;
+  gap: 6px 8px;
+  align-items: center;
+  margin-top: 4px;
+}
+.fee-matrix .fm-charge {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.fee-matrix .fm-head {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent-dark);
+  padding-bottom: 3px;
+  border-bottom: 1px solid var(--line);
+}
+.fee-matrix input,
+.fee-matrix select { margin-top: 0; }
+
+/* ---------- Field help popup ---------- */
+.help-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 30, 50, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 24px;
+}
+.help-modal {
+  position: relative;
+  background: #fff;
+  max-width: 380px;
+  width: 100%;
+  border-radius: 12px;
+  padding: 22px 24px;
+  box-shadow: 0 14px 44px rgba(0, 0, 0, 0.32);
+  animation: helpPop 0.14s ease-out;
+}
+@keyframes helpPop { from { transform: scale(0.94); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.help-modal-title { margin: 0 28px 10px 0; font-size: 15px; color: var(--accent-dark); }
+.help-modal-desc { margin: 0; font-size: 13.5px; line-height: 1.6; color: #333; }
+.help-close {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  border: none;
+  background: none;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--muted);
+}
+.help-close:hover { color: #000; }
+
+/* ---------- Validation ---------- */
+.form-panel .invalid,
+.form-panel .invalid:focus {
+  border-color: #d32f2f !important;
+  box-shadow: 0 0 0 3px rgba(211, 47, 47, 0.18);
+  background: #fff5f5;
+}
+.validate-box {
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.validate-box.error {
+  background: #fdecea;
+  border: 1.5px solid #d32f2f;
+  color: #8a1c12;
+}
+.validate-box.ok {
+  background: #e8f5e9;
+  border: 1.5px solid #2e7d32;
+  color: #1b5e20;
+}
+.validate-box .vb-title { font-weight: 700; display: block; margin-bottom: 6px; }
+.validate-box ul { margin: 0; padding-left: 18px; }
+.validate-box li { margin: 2px 0; }
+
+.fab {
+  position: fixed;
+  right: 26px;
+  bottom: 26px;
+  z-index: 50;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 22px;
+  border: none;
+  border-radius: 30px;
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(11, 92, 171, 0.4);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.fab:hover { transform: translateY(-2px); box-shadow: 0 9px 22px rgba(11, 92, 171, 0.5); }
+.fab:active { transform: translateY(0); }
+.fab.fab-error { background: linear-gradient(135deg, #e53935, #b71c1c); box-shadow: 0 6px 18px rgba(211, 47, 47, 0.45); }
+.fab.fab-ok { background: linear-gradient(135deg, #43a047, #2e7d32); box-shadow: 0 6px 18px rgba(46, 125, 50, 0.45); }
+.fab .fab-icon { font-size: 16px; }
+
+.hidden { display: none !important; }
+
+/* ---------- Bulk CSV import ---------- */
+.csv-panel { border-color: var(--accent); background: #f6faff; }
+.csv-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 8px; }
+.csv-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: var(--accent); color: #fff; border: none;
+  font: inherit; font-weight: 600; font-size: 13px;
+  padding: 9px 14px; border-radius: 7px; cursor: pointer;
+  transition: background .15s, box-shadow .15s;
+}
+.csv-btn:hover { background: var(--accent-dark); }
+.csv-upload { position: relative; overflow: hidden; }
+.csv-upload input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.csv-hint { margin: 4px 0 8px; line-height: 1.4; }
+.csv-report {
+  margin-top: 8px; border-radius: 7px; padding: 10px 12px;
+  font-size: 12.5px; max-height: 240px; overflow: auto;
+  border: 1px solid var(--line); background: #fff;
+}
+.csv-report.error { border-color: #d32f2f; background: #fff5f5; }
+.csv-report.ok { border-color: #2e7d32; background: #f1faf2; }
+.csv-rep-title { font-weight: 700; margin-bottom: 6px; }
+.csv-rep-title .ok-txt { color: #2e7d32; }
+.csv-rep-title .err-txt { color: #d32f2f; }
+.csv-rep-row { padding: 5px 0; border-top: 1px dashed var(--line); }
+.csv-rep-row.err b { color: #c62828; }
+.csv-rep-row.ok { color: #2e7d32; font-weight: 600; }
+.csv-rep-row ul { margin: 4px 0 0 18px; }
+
+.borrower-sep {
+  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  color: #fff; font-weight: 700; font-size: 13px;
+  padding: 8px 14px; border-radius: 6px; margin: 22px 0 6px;
+}
+.borrower-sep:first-child { margin-top: 0; }
+
+/* ---------- KFS output ---------- */
+.kfs-output { display: flex; flex-direction: column; gap: 22px; }
+
+/* Brief highlight when a Loan-Inputs card scrolls its KFS section into view. */
+.kfs-page.kfs-flash { animation: kfsFlash 1.3s ease; }
+@keyframes kfsFlash {
+  0%   { box-shadow: 0 0 0 0 rgba(11, 92, 171, 0); }
+  25%  { box-shadow: 0 0 0 3px rgba(11, 92, 171, .55), 0 6px 22px rgba(11, 92, 171, .25); }
+  100% { box-shadow: 0 0 0 0 rgba(11, 92, 171, 0); }
+}
+.kfs-page {
+  background: #fff;
+  border-radius: 8px;
+  padding: 26px 30px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, .1);
+  position: relative;
+}
+/* Per-page inline edit/save toggle (screen only) */
+.page-edit-btn {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font: 600 11px/1 system-ui, -apple-system, sans-serif;
+  padding: 6px 11px;
+  border-radius: 14px;
+  cursor: pointer;
+  border: 1px solid var(--accent);
+  background: #fff;
+  color: var(--accent);
+}
+.page-edit-btn:hover { background: #eef4ff; }
+.page-edit-btn.saving { background: #1b8a3a; border-color: #1b8a3a; color: #fff; }
+.kfs-page.editing { outline: 2px dashed #1b8a3a; outline-offset: 3px; background: #fffdf5; }
+.kfs-annex {
+  display: inline-block;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: .5px;
+  padding: 3px 12px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+.page-foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 14px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  font-size: 11px;
+  color: var(--muted);
+}
+.kfs-notes {
+  margin-top: 10px;
+  font-size: 10.5px;
+  line-height: 1.45;
+  color: var(--muted);
+}
+.kfs-notes p { margin: 2px 0; }
+/* Footnote numbers — maroon red, bold, and forced to print/export in colour. */
+.kfs-table sup,
+.kfs-notes sup {
+  color: #8b0000;
+  font-weight: 800;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.kfs-notes sup { font-size: 1.05em; padding-right: 2px; }
+
+.kfs-table.parties { margin-bottom: 12px; }
+.kfs-table.parties td { font-size: 12.5px; }
+
+.amount-words {
+  display: block;
+  margin-top: 4px;
+  font-size: 11.5px;
+  color: var(--accent-dark);
+  font-style: italic;
+}
+
+.kfs-title { text-align: center; margin-bottom: 14px; }
+.kfs-main { font-size: 18px; font-weight: 700; letter-spacing: 1px; }
+.kfs-sub { font-size: 14px; font-weight: 600; margin-top: 2px; }
+.kfs-cite { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+.kfs-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+.kfs-table td, .kfs-table th {
+  border: 1px solid var(--line);
+  padding: 6px 9px;
+  vertical-align: top;
+  text-align: left;
+}
+.kfs-table .sn { width: 40px; text-align: center; vertical-align: middle; font-weight: 600; }
+.kfs-table .sn.main { font-weight: 700; font-size: 13.5px; color: var(--accent-dark); background: var(--head-bg); }
+.kfs-table .sn.sub { font-weight: 500; font-size: 11px; color: var(--muted); text-align: right; padding-right: 8px; }
+.kfs-table .lbl { width: 42%; }
+.kfs-table .sub-lbl { padding-left: 34px; color: #333; position: relative; }
+.kfs-table .sub-lbl::before { content: "\21B3"; position: absolute; left: 14px; color: var(--muted); }
+.kfs-table .val { font-weight: 600; }
+.kfs-table .subhead td, .kfs-table .subhead th {
+  background: var(--head-bg);
+  font-weight: 600;
+  text-align: center;
+}
+.kfs-table .section-h {
+  background: #eaf1f9;
+  font-weight: 600;
+  text-align: center;
+}
+.kfs-table .totrow td { background: #f7faff; font-weight: 700; }
+.muted { color: var(--muted); font-weight: 400; font-size: 11px; }
+
+.kfs-table .nestcell { padding: 0; }
+.kfs-table .nested { border: none; }
+.kfs-table .nested td { border-left: none; }
+.kfs-table .nested tr td:first-child { border-left: none; }
+.kfs-table .nested tr td:last-child { border-right: none; }
+
+.schedule td, .schedule th { text-align: right; }
+.schedule td:first-child, .schedule th:first-child { text-align: center; }
+.schedule thead th { position: sticky; top: 0; }
+.schedule tr.mor-row { background: #fff7e6; }
+
+.decl { line-height: 1.6; font-size: 12.5px; margin: 8px 0; text-align: justify; text-justify: inter-word; text-indent: 2em; }
+.decl.no-indent { text-indent: 0; }
+/* Tear-off divider between the declaration and the acknowledgement slip. */
+.ack-cut {
+  position: relative;
+  border-top: 2px dashed #9aa7b6;
+  margin: 22px 0 6px;
+  text-align: left;
+}
+.ack-cut span {
+  position: absolute;
+  top: -11px;
+  left: 0;
+  background: #fff;
+  padding-right: 6px;
+  font-size: 16px;
+  color: #6b7785;
+}
+
+/* ---------- Print ---------- */
+/* PDF export (html2pdf) — mirror the print page-break logic so Download/Share
+   paginate exactly like Print instead of slicing the tall flex layout (blank bands). */
+/* Collapse the grid layout (as Print does) so #kfsOutput is captured at FULL width.
+   The layout is `grid-template-columns: 360px 1fr`; with the form panel hidden the
+   output lands in the fixed 360px column, forcing heavy text-wrap and over-tall pages
+   that html2pdf then slices through headings. Block layout gives it full width. */
+body.pdf-export .layout { display: block; padding: 0; }
+body.pdf-export .kfs-output { display: block; gap: 0; }
+body.pdf-export .kfs-page {
+  box-shadow: none;
+  border-radius: 0;
+  margin: 0;
+  padding: 0;
+  page-break-before: always;
+  break-before: page;
+}
+body.pdf-export .kfs-page:first-of-type { page-break-before: avoid; break-before: auto; }
+/* Short annexes stay on one page; the long schedule and declaration may flow across pages. */
+body.pdf-export .kfs-page:not(#annexure):not(#declaration) { page-break-inside: avoid; break-inside: avoid; }
+body.pdf-export .schedule tr { page-break-inside: avoid; break-inside: avoid; }
+/* Never split a section's title/heading block across a page boundary. */
+body.pdf-export .kfs-title, body.pdf-export .ack-cut { page-break-inside: avoid; break-inside: avoid; }
+body.pdf-export .decl { page-break-inside: avoid; break-inside: avoid; orphans: 3; widows: 3; }
+body.pdf-export .no-print { display: none !important; }
+/* Compact sizing (same as print) so each section fits an A4 page when rasterized. */
+body.pdf-export .kfs-table { font-size: 10px; }
+body.pdf-export .kfs-table td, body.pdf-export .kfs-table th { padding: 3px 5px; }
+body.pdf-export .kfs-main { font-size: 16px; }
+body.pdf-export .kfs-sub { font-size: 12px; }
+
+@media print {
+  @page { size: A4; margin: 12mm; }
+  body { background: #fff; font-size: 11px; }
+  .no-print { display: none !important; }
+  .layout { display: block; padding: 0; }
+  .kfs-output { gap: 0; }
+  .kfs-page {
+    box-shadow: none;
+    border-radius: 0;
+    padding: 0;
+    page-break-before: always;
+    break-before: page;
+  }
+  .kfs-page:first-of-type { page-break-before: avoid; break-before: auto; }
+  /* Keep each short annex on a single page; the long schedule/declaration may flow. */
+  .kfs-page:not(#annexure):not(#declaration) { page-break-inside: avoid; break-inside: avoid; }
+  .kfs-title, .ack-cut { page-break-inside: avoid; break-inside: avoid; }
+  .decl { page-break-inside: avoid; break-inside: avoid; orphans: 3; widows: 3; }
+  .kfs-table { font-size: 10px; }
+  .kfs-table td, .kfs-table th { padding: 3px 5px; }
+  .schedule thead { display: table-header-group; }
+  .schedule tr { page-break-inside: avoid; }
+}
