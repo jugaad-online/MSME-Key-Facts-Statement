@@ -455,10 +455,6 @@ function buildKfsHtml(inp, res) {
   const tm = inp.tenureMonths || 0;
   const tenureTxt = `${tm} Month${tm == 1 ? "" : "s"}${tm % 12 === 0 && tm >= 12 ? ` (${tm / 12} Yr${tm / 12 == 1 ? "" : "s"})` : ""}`;
 
-  const TOTAL = 4;
-  const foot = (label, n) =>
-    `<div class="page-foot"><span>${label}</span><span>Page ${n} of ${TOTAL}</span></div>`;
-
   const part1 = `
   <article class="kfs-page" id="part1">
     <div class="kfs-annex">Annexure-A</div>
@@ -569,7 +565,6 @@ function buildKfsHtml(inp, res) {
       <p><sup>5</sup> Mention frequency, where recurring.</p>
       <p><sup>6</sup> Please refer to the illustration in Annexure-A(1).</p>
     </div>
-    ${foot("Annexure-A &middot; Key Facts Statement (Part-1)", 1)}
   </article>`;
 
   const part2 = `
@@ -603,7 +598,6 @@ function buildKfsHtml(inp, res) {
     <div class="kfs-notes">
       <p><sup>7</sup> RE may furnish a generic email id, provided a response is made within 1 working day.</p>
     </div>
-    ${foot("Annexure-A &middot; Key Facts Statement (Part-2)", 2)}
   </article>`;
 
   const apr = `
@@ -635,7 +629,6 @@ function buildKfsHtml(inp, res) {
       <p><sup>9</sup> Any difference vis-à-vis the total of instalments in the detailed repayment schedule is on account of rounding off of the instalment amount.</p>
       <p><sup>10</sup> Computed on net disbursed amount using IRR approach and reducing balance method.</p>
     </div>
-    ${foot("Annexure-A(1) &middot; Illustration for computation of APR for MSME Loans", 3)}
   </article>`;
 
   // For serviced-interest moratorium rows, the "Instalment during Moratorium" option controls
@@ -676,7 +669,6 @@ function buildKfsHtml(inp, res) {
       </thead>
       <tbody>${rows}</tbody>
     </table>
-    ${foot("Annexure-A(2) &middot; Illustrative Repayment Schedule", 4)}
   </article>`;
 
   return part1 + part2 + apr + annexure;
@@ -1049,10 +1041,12 @@ function showGuide() {
     `<li><b>Fees &amp; charge nature.</b> Enter the amount and the <i>One-time / Recurring</i> nature side-by-side for <i>Payable to RE (8A)</i> and <i>Third Party (8B)</i>.</li>` +
     `<li><b>APR.</b> The <i>Annual Percentage Rate</i> is auto-calculated from the loan terms and fees (IRR / reducing-balance method). Untick <i>Auto</i> to type your own APR &mdash; it is then used as-is in the KFS (Sl. 9) and the APR illustration.</li>` +
     `<li><b>Use dropdowns.</b> Many fields are dropdowns; choose <i>Other (specify)</i> to type a custom value.</li>` +
+    `<li><b>Moratorium options.</b> When a <i>Moratorium Period (MoP)</i> is set, choose whether interest is <i>paid monthly</i> (principal unchanged) or <i>capitalised</i>. If paid monthly, <i>Instalment during Moratorium</i> controls how the MoP rows read in the schedule (<i>Pay interest only</i>, the <i>Computed interest</i>, <i>Add 0</i>, or your own text) &mdash; this is display-only and never changes the calculation.</li>` +
+    `<li><b>A4 preview.</b> The on-screen preview shows each section as a real <b>A4 sheet</b> with the same margins as the export, and a faint line marks every page boundary &mdash; so you can see at a glance how many pages each Annexure will take. Each section fits its own A4 page (the long <i>Annexure-A(2)</i> schedule may flow across several).</li>` +
     `<li><b>Click <span class="guide-pill">&#10003; Validate</span></b> (floating button, bottom-right). Missing or invalid mandatory fields are highlighted in red and listed at the top. The Grievance Redressal Officer (GRO) details are optional &mdash; if left blank they show as an amber note and can be added manually later.</li>` +
-    `<li><b>Download / Print PDF.</b> Enabled once validation passes &mdash; this prints the full KFS (Annexure-A Parts 1&amp;2, Annexure-A(1) and Annexure-A(2)), each on its own page.</li>` +
+    `<li><b>Download / Print / Share.</b> These buttons are always clickable and run validation first &mdash; if anything is missing you&rsquo;re asked to complete it before proceeding. <span class="guide-pill">Download</span> and <span class="guide-pill">Share</span> let you choose the format: <b>PDF</b>, <b>Word (.docx)</b> or <b>Word (.doc)</b>. Every Annexure starts on a fresh page and fits a single A4 page (except the <i>Annexure-A(2)</i> schedule, which may flow). <span class="guide-pill">Print Preview (A4)</span> opens a new window showing the exact A4 page layout before you print, and <span class="guide-pill">Print</span> opens the print dialog (use &ldquo;Save as PDF&rdquo;).</li>` +
     `<li><b>Bulk loans (CSV).</b> In <i>Bulk Import</i>: click <span class="guide-pill">Download CSV template</span>, fill <b>one row per loan</b>, then <span class="guide-pill">Import CSV</span>. Every row is validated; valid ones generate a KFS each and invalid ones are listed and skipped.</li>` +
-    `<li><b>Auto-save &amp; Reset.</b> Your inputs are saved in this browser automatically. <span class="guide-pill">Reset</span> clears them back to the defaults.</li>` +
+    `<li><b>Auto-save &amp; Reset.</b> Your inputs are saved in this browser automatically. The <span class="guide-pill">Reset all fields</span> card (top of the form) clears them back to the defaults.</li>` +
     `</ol>` +
     `<p class="guide-note">Illustrative aid based on RBI Circular RBI/2024-25/18 dated April 15, 2024 (Key Facts Statement / Annexure-A for MSME loans). Always verify against the latest RBI notifications.</p>`;
   showHelp("How to use the MSME KFS Builder", html, true);
@@ -1285,6 +1279,7 @@ function validateForm() {
 function setOutputButtons() {
   const cfg = [
     ["btnDownload", "Download the KFS — choose PDF or Word (.docx / .doc)"],
+    ["btnPreview", "Print preview (A4) — see the page layout before printing"],
     ["btnPrint", "Print the KFS (use 'Save as PDF' in the print dialog)"],
     ["btnShare", "Share the KFS — choose PDF or Word (.docx / .doc)"],
   ];
@@ -1356,16 +1351,6 @@ function downloadBlob(filename, content, type) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-// Build a sensible PDF file name from the loan proposal / account number.
-function pdfFileName() {
-  const slug = (s) => String(s || "").trim().replace(/[^\w]+/g, "_").replace(/^_+|_+$/g, "");
-  if (bulkMode) return "KFS_all_loans.pdf";
-  const acct = slug(document.getElementById("proposalNo") && document.getElementById("proposalNo").value);
-  // KFS_{account no}, skipping the account part when blank.
-  const parts = ["KFS", acct].filter(Boolean);
-  return `${parts.join("_")}.pdf`;
-}
-
 // Render the current KFS output element into a PDF Blob via html2pdf.
 async function generatePdfBlob() {
   const el = document.getElementById("kfsOutput");
@@ -1379,7 +1364,7 @@ async function generatePdfBlob() {
   }
   const opt = {
     margin: 10,
-    filename: pdfFileName(),
+    filename: exportFileName("pdf"),
     image: { type: "jpeg", quality: 0.98 },
     // scrollX/scrollY/y pin the capture origin to the top of the content; without
     // these, html2canvas uses the current page scroll offset and leaves blank pages.
@@ -1466,6 +1451,8 @@ const EXPORT_CSS = `
 * { box-sizing: border-box; }
 body { font-family: Arial, "Helvetica Neue", sans-serif; color: #1a1a1a; font-size: 12px; margin: 0; }
 .kfs-page.brk { page-break-before: always; }
+.kfs-page.fit { page-break-inside: avoid; }
+.kfs-page.fit table, .kfs-page.fit tr { page-break-inside: avoid; }
 .kfs-annex { display: inline-block; background: #084a8a; color: #fff; font-weight: 700; font-size: 12px; letter-spacing: .5px; padding: 3px 12px; border-radius: 4px; margin-bottom: 8px; }
 .kfs-title { text-align: center; margin-bottom: 14px; }
 .kfs-main { font-size: 18px; font-weight: 700; letter-spacing: 1px; }
@@ -1495,13 +1482,14 @@ body { font-family: Arial, "Helvetica Neue", sans-serif; color: #1a1a1a; font-si
 .kfs-notes { margin-top: 10px; font-size: 10px; line-height: 1.45; color: #6b7280; }
 .kfs-notes p { margin: 2px 0; }
 .kfs-table sup, .kfs-notes sup { color: #8b0000; font-weight: 800; }
-.page-foot { margin-top: 14px; padding-top: 8px; border-top: 1px solid #c9ced6; font-size: 11px; color: #6b7280; }
 `;
 
-// Build a complete, self-contained HTML document (Word-compatible) from the rendered
-// KFS output. The on-screen Edit buttons / no-print chrome are stripped; the first
-// page's leading page-break is suppressed so Word doesn't emit a blank first page.
-function buildExportHtml() {
+// Clone the rendered KFS output and prepare it for export/preview: strip the on-screen
+// Edit buttons / no-print chrome, force a fresh page before every section (except the
+// first, so no blank leading page) and keep each section on one page (except the long
+// Annexure-A(2) schedule), and force visible table borders for Word. Returns the cleaned
+// inner HTML, or null when there is nothing to export.
+function buildExportBodyHtml() {
   const el = document.getElementById("kfsOutput");
   if (!el || !el.innerHTML.trim()) {
     alert("There is nothing to export yet. Fill the form and click Validate first.");
@@ -1509,14 +1497,71 @@ function buildExportHtml() {
   }
   const clone = el.cloneNode(true);
   clone.querySelectorAll(".no-print, .page-edit-btn").forEach(n => n.remove());
-  // Force a fresh page before every section EXCEPT the first (so Word/PDF don't emit a
-  // blank leading page). Use a class — Word honours `page-break-before` on a class
-  // reliably, whereas inline styles get normalised to the unsupported `break-before`.
-  clone.querySelectorAll(".kfs-page").forEach((p, i) => { if (i > 0) p.classList.add("brk"); });
+  // Use classes — Word honours `page-break-before` on a class reliably, whereas inline
+  // styles get normalised to the unsupported `break-before`.
+  clone.querySelectorAll(".kfs-page").forEach((p, i) => {
+    if (i > 0) p.classList.add("brk");
+    if (p.id !== "annexure") p.classList.add("fit");
+  });
+  // Word/html-docx-js don't reliably apply class-based `border-collapse` cell borders, so
+  // force visible borders: the HTML `border` attribute on every top-level (non-nested)
+  // table, plus explicit inline borders on the repayment-schedule cells. Browsers/PDF keep
+  // using the stylesheet (this only changes the Word/.doc/.docx output).
+  clone.querySelectorAll("table.kfs-table:not(.nested)").forEach(t => {
+    t.setAttribute("border", "1");
+    t.setAttribute("cellspacing", "0");
+    t.style.borderCollapse = "collapse";
+  });
+  clone.querySelectorAll(".schedule td, .schedule th").forEach(c => {
+    c.style.border = "1px solid #c9ced6";
+  });
+  return clone.innerHTML;
+}
+
+// Build a complete, self-contained HTML document (Word-compatible) from the rendered
+// KFS output, for the .doc / .docx exports.
+function buildExportHtml() {
+  const body = buildExportBodyHtml();
+  if (body === null) return null;
   return `<!DOCTYPE html><html xmlns:o="urn:schemas-microsoft-com:office:office" ` +
     `xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">` +
     `<head><meta charset="utf-8"><title>Key Facts Statement (KFS)</title>` +
-    `<style>${EXPORT_CSS}</style></head><body>${clone.innerHTML}</body></html>`;
+    `<style>${EXPORT_CSS}</style></head><body>${body}</body></html>`;
+}
+
+// Show an on-screen A4 print preview as an in-page overlay. A pop-up window is deliberately
+// avoided: window.open is silently blocked under file:// and by pop-up blockers. Each section
+// is rendered as an A4 sheet on a grey desk with a sticky toolbar to Print / Save-as-PDF or
+// close; the @media print rules in styles.css isolate the overlay so only the preview pages
+// are printed. Validation is run by the caller before this is invoked.
+function printPreview() {
+  const body = buildExportBodyHtml();
+  if (body === null) return;
+
+  const existing = document.getElementById("pvOverlay");
+  if (existing) existing.remove();
+
+  const overlay = document.createElement("div");
+  overlay.id = "pvOverlay";
+  overlay.className = "pv-overlay";
+  overlay.innerHTML =
+    `<div class="pv-bar no-print">` +
+    `<button type="button" class="pv-print">&#128424; Print / Save as PDF</button>` +
+    `<button type="button" class="pv-close">Close</button>` +
+    `<span class="pv-hint">A4 portrait &middot; each Annexure on its own page (the repayment schedule may flow across pages)</span>` +
+    `</div><div class="pv-pages">${body}</div>`;
+  document.body.appendChild(overlay);
+  document.body.classList.add("pv-open");
+
+  const close = () => {
+    overlay.remove();
+    document.body.classList.remove("pv-open");
+    document.removeEventListener("keydown", onKey);
+  };
+  const onKey = (e) => { if (e.key === "Escape") close(); };
+  overlay.querySelector(".pv-print").addEventListener("click", () => window.print());
+  overlay.querySelector(".pv-close").addEventListener("click", close);
+  document.addEventListener("keydown", onKey);
 }
 
 // Word 97–2003 (.doc): an HTML document with Office namespaces. Opens natively in
@@ -1550,7 +1595,8 @@ const EXPORT_TYPES = {
   doc: { ext: "doc", mime: "application/msword", make: generateDocBlob },
 };
 
-// File name for an export of the given extension (mirrors pdfFileName()).
+// Build a sensible file name for an export of the given extension, from the loan
+// proposal / account number (KFS_{account}.{ext}, or KFS_all_loans.{ext} in bulk mode).
 function exportFileName(ext) {
   const slug = (s) => String(s || "").trim().replace(/[^\w]+/g, "_").replace(/^_+|_+$/g, "");
   if (bulkMode) return `KFS_all_loans.${ext}`;
@@ -1857,6 +1903,8 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   const resetBtn = document.getElementById("btnReset");
   if (resetBtn) resetBtn.addEventListener("click", resetToDefaults);
+  const resetCardBtn = document.getElementById("btnResetCard");
+  if (resetCardBtn) resetCardBtn.addEventListener("click", resetToDefaults);
   const guideBtn = document.getElementById("btnGuide");
   if (guideBtn) guideBtn.addEventListener("click", showGuide);
 
@@ -1914,6 +1962,15 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
     downloadPdf();
+  });
+
+  const previewBtn = document.getElementById("btnPreview");
+  if (previewBtn) previewBtn.addEventListener("click", () => {
+    if (!bulkMode && !validateForm()) {
+      alert("Please complete the form first before previewing.\nThe missing or invalid fields are highlighted in red and listed at the top — fix them, then try again.");
+      return;
+    }
+    printPreview();
   });
 
   const shareBtn = document.getElementById("btnShare");
