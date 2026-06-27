@@ -1247,20 +1247,22 @@ function validateForm() {
       `<span>Please correct the highlighted fields before printing.</span>` +
       advisoryHtml;
     fab.classList.add("fab-error");
-    setOutputButtons(false, "Fix all highlighted fields, then Validate to enable this");
+    setOutputButtons();
     const first = document.querySelector(".form-panel .invalid");
     if (first) first.scrollIntoView({ behavior: "smooth", block: "center" });
   } else {
     box.classList.add("ok");
     box.innerHTML = `<span class="vb-title">&#10003; All mandatory fields are filled.</span>The KFS below is ready to download / print.` + advisoryHtml;
     fab.classList.add("fab-ok");
-    setOutputButtons(true);
+    setOutputButtons();
   }
   return problems.length === 0;
 }
 
-// Enable/disable the Download + Share buttons together.
-function setOutputButtons(enabled, disabledTitle) {
+// The Download / Print / Share buttons are always clickable; validation is run at
+// click time instead (see the click handlers). This keeps them enabled at all times
+// and only gates the actual action when mandatory fields are incomplete.
+function setOutputButtons() {
   const cfg = [
     ["btnDownload", "Download the KFS as a PDF file to your device"],
     ["btnPrint", "Print the KFS (use 'Save as PDF' in the print dialog)"],
@@ -1269,8 +1271,8 @@ function setOutputButtons(enabled, disabledTitle) {
   cfg.forEach(([id, okTitle]) => {
     const b = document.getElementById(id);
     if (!b) return;
-    b.disabled = !enabled;
-    b.title = enabled ? okTitle : (disabledTitle || "Click Validate first — all mandatory fields must be filled");
+    b.disabled = false;
+    b.title = okTitle;
   });
 }
 
@@ -1575,11 +1577,11 @@ function processCSVText(text) {
     }).join("");
     document.getElementById("kfsOutput").innerHTML = out;
     addPageControls();
-    setOutputButtons(true, "");
+    setOutputButtons();
     printBtn.title = `Download / Print the KFS for all ${valid.length} loan(s)`;
   } else {
     bulkMode = false;
-    setOutputButtons(false);
+    setOutputButtons();
   }
 }
 
@@ -1630,7 +1632,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (csvFile) csvFile.value = "";
       }
       // Data changed -> require a fresh validation before printing.
-      setOutputButtons(false, "Click Validate first — all mandatory fields must be filled before printing/sharing");
+      setOutputButtons();
       toggleRateMode();
       toggleCombos();
       saveInputs();
@@ -1676,7 +1678,7 @@ document.addEventListener("DOMContentLoaded", () => {
       formatAmount();
       toggleRateMode();
       toggleCombos();
-      setOutputButtons(false, "Click Validate first — all mandatory fields must be filled before printing/sharing");
+      setOutputButtons();
       saveInputs();
       refresh();
     });
@@ -1725,9 +1727,9 @@ document.addEventListener("DOMContentLoaded", () => {
   printBtn.addEventListener("click", () => {
     // In bulk mode the rendered borrowers are already validated.
     if (bulkMode) { window.print(); return; }
-    // Final safety check: never print with missing mandatory data.
+    // Validate at click time: never print with missing/invalid mandatory data.
     if (!validateForm()) {
-      alert("Please fill all mandatory fields before printing.\nThe missing fields are highlighted in red.");
+      alert("Please complete the form first before printing.\nThe missing or invalid fields are highlighted in red and listed at the top — fix them, then try again.");
       return;
     }
     window.print();
@@ -1736,7 +1738,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const downloadBtn = document.getElementById("btnDownload");
   if (downloadBtn) downloadBtn.addEventListener("click", () => {
     if (!bulkMode && !validateForm()) {
-      alert("Please fill all mandatory fields before downloading.\nThe missing fields are highlighted in red.");
+      alert("Please complete the form first before downloading.\nThe missing or invalid fields are highlighted in red and listed at the top — fix them, then try again.");
       return;
     }
     downloadPdf();
@@ -1745,7 +1747,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const shareBtn = document.getElementById("btnShare");
   if (shareBtn) shareBtn.addEventListener("click", () => {
     if (!bulkMode && !validateForm()) {
-      alert("Please fill all mandatory fields before sharing.\nThe missing fields are highlighted in red.");
+      alert("Please complete the form first before sharing.\nThe missing or invalid fields are highlighted in red and listed at the top — fix them, then try again.");
       return;
     }
     sharePdf();
