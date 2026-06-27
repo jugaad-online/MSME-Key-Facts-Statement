@@ -523,6 +523,11 @@ legend { font-weight: 600; color: var(--accent-dark); padding: 0 6px; font-size:
 .kfs-table .nested tr td:first-child { border-left: none; }
 .kfs-table .nested tr td:last-child { border-right: none; }
 
+/* Sl. 1 grid: labels shrink to their text (no wrapping) and the value cells
+   share the remaining width, so a long "Type of Loan" gets room automatically. */
+.kfs-table .nested.s1grid td.lbl { width: 1%; white-space: nowrap; }
+.kfs-table .nested.s1grid td.val { width: auto; overflow-wrap: anywhere; }
+
 .schedule td, .schedule th { text-align: right; }
 .schedule td:first-child, .schedule th:first-child { text-align: center; }
 .schedule thead th { position: sticky; top: 0; }

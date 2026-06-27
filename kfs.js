@@ -312,10 +312,16 @@ function calculate(inp) {
   const commenceExplicit = false;
   const commenceMonths = inp.moratoriumMonths || 0;
 
+  // Accrual base date for the Actual/365 day-count. The Date of Disbursement drives it; when
+  // that is left blank (it is optional) we fall back to the mandatory Date of Sanction so the
+  // moratorium and EPI interest are still accrued on a true Actual/365 basis rather than a
+  // flat nominal 1/period approximation.
+  const accrualBase = inp.disbursalDate || inp.sanctionDate || "";
+
   // First-instalment base date = disbursement month (month-end), shifted by any MoP.
   let baseDate = null;
-  if (inp.disbursalDate) {
-    const d = new Date(inp.disbursalDate);
+  if (accrualBase) {
+    const d = new Date(accrualBase);
     if (!isNaN(d)) { d.setMonth(d.getMonth() + commenceMonths); baseDate = d; }
   }
 
@@ -324,17 +330,17 @@ function calculate(inp) {
   const dueDateOf = (p) => eomDate(baseDate, Math.round((p - morPeriods) * mpp));
   const MS_PER_DAY = 86400000;
   const daysBetween = (a, b) => (a && b ? Math.round((b - a) / MS_PER_DAY) : 0);
-  // Days from disbursement to the first schedule due date (end of the disbursement month).
+  // Days from the accrual base date to the first schedule due date (end of that month).
   let commenceDays = 0;
-  if (inp.disbursalDate && baseDate) {
-    const dd = new Date(inp.disbursalDate);
+  if (accrualBase && baseDate) {
+    const dd = new Date(accrualBase);
     if (!isNaN(dd)) commenceDays = Math.max(0, daysBetween(dd, dueDateOf(0)));
   }
-  // Interest accrues from the Date of Disbursal up to the first due date, so a mid-month
-  // disbursal yields a correctly shortened first period.
+  // Interest accrues from the accrual base date up to the first due date, so a mid-month
+  // disbursal (or sanction, when disbursal is blank) yields a correctly shortened first period.
   let accrualStart = null;
-  if (inp.disbursalDate) {
-    const d = new Date(inp.disbursalDate);
+  if (accrualBase) {
+    const d = new Date(accrualBase);
     if (!isNaN(d)) accrualStart = d;
   }
   if (!accrualStart) accrualStart = baseDate;
@@ -462,11 +468,11 @@ function buildKfsHtml(inp, res) {
     </div>
     <table class="kfs-table">
       <tr id="p1-s1"><td class="sn main">1</td><td colspan="3" class="nestcell">
-        <table class="kfs-table nested">
+        <table class="kfs-table nested s1grid">
           <tr>
-            <td class="lbl" style="width:28%">Loan proposal / Account No.</td>
-            <td class="val" style="width:24%">${inp.proposalNo || "-"}</td>
-            <td class="lbl" style="width:20%">Type of Loan</td>
+            <td class="lbl">Loan proposal / Account No.</td>
+            <td class="val">${inp.proposalNo || "-"}</td>
+            <td class="lbl">Type of Loan</td>
             <td class="val">${inp.loanType || "-"}</td>
           </tr>
           <tr>
@@ -477,7 +483,7 @@ function buildKfsHtml(inp, res) {
           </tr>
         </table>
       </td></tr>
-      <tr><td class="sn main">2</td><td class="lbl">Sanctioned Loan amount (in Rupees)</td><td class="val" colspan="2">₹ ${fmtMoney(res.P)}<br><span class="muted">(${res.amountWords})</span></td></tr>
+      <tr><td class="sn main">2</td><td class="lbl">Sanctioned Loan amount (in Rupees)</td><td class="val" colspan="2">₹ ${fmtMoney(res.P)} <span class="muted">(${res.amountWords})</span></td></tr>
       <tr><td class="sn main">3</td><td class="lbl">Disbursal schedule<br><span class="muted">(i) Disbursement in stages or 100% upfront. (ii) If it is stage wise, mention the clause of loan agreement having relevant details.</span></td><td class="val" colspan="2">${inp.disbursalSchedule}${inp.disbursalClause ? " &mdash; " + inp.disbursalClause : ""}</td></tr>
       <tr id="p1-s4"><td class="sn main">4</td><td class="lbl">Loan term (year/months/days)</td><td class="val" colspan="2">${tenureTxt}${res.moratoriumMonths ? ` <span class="muted">(includes a MoP of ${res.moratoriumMonths} month${res.moratoriumMonths == 1 ? "" : "s"})</span>` : ""}</td></tr>
       <tr><td class="sn main">5</td><td class="lbl" colspan="3">Instalment details</td></tr>
