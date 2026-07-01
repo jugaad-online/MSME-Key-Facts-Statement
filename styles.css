@@ -205,6 +205,27 @@ legend { font-weight: 600; color: var(--accent-dark); padding: 0 6px; font-size:
 }
 /* Read-only (auto-calculated) APR field looks distinct from editable inputs. */
 #aprOverride[readonly] { background: #f3f4f6; color: var(--ink); cursor: default; }
+
+.computed-out {
+  display: block;
+  width: 100%;
+  padding: 0.45rem 0.55rem;
+  background: #f3f4f6;
+  color: var(--ink);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+.computed-hint {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+.computed-month {
+  font-weight: 600;
+  color: var(--ink);
+}
 .form-panel .combo-other { margin-top: 6px; background: #fffdf5; border-color: #e3c98a; }
 /* Two fields side-by-side on one row (e.g. Benchmark Rate (B) + Spread (S)).
    align-items:end + margin-top:auto keep the input boxes on the same baseline

@@ -286,7 +286,6 @@ function calculate(inp) {
   const P = inp.amount;
   const r = inp.appliedRate;
   const ppy = { "Monthly": 12, "Quarterly": 4, "Half-Yearly": 2, "Annually": 1 }[inp.frequency] || 12;
-  const n = Math.round((inp.tenureMonths / 12) * ppy);
   const rp = r / ppy; // periodic rate
 
   const reTotal = inp.re.processing + inp.re.insurance + inp.re.valuation + inp.re.other;
@@ -297,14 +296,15 @@ function calculate(inp) {
   const isHybrid = inp.rateMode === "Hybrid";
   const rp2 = isHybrid ? inp.floatRate / ppy : rp;
 
-  // Moratorium: initial periods with no instalment; interest accrues & capitalises.
-  const totalN = n;
+  // Tenure (months) = repayment phase only — number of equated instalment (EPI) periods,
+  // excluding the MoP. The MoP is additional calendar time before those EPIs begin.
   const morPeriods = Math.max(0, Math.round((inp.moratoriumMonths || 0) * ppy / 12));
-  const repayN = Math.max(1, totalN - morPeriods); // periods in which EPIs are actually paid
+  const repayN = Math.max(1, Math.round((inp.tenureMonths / 12) * ppy));
+  const totalN = repayN + morPeriods;
 
-  // For hybrid: fixed phase length, reduced by any periods already consumed by the moratorium.
+  // Hybrid: fixed-rate phase length within the repayment period (after MoP).
   const kFull = isHybrid ? Math.round(inp.hybridFixedYears * ppy) : 0;
-  const k = isHybrid ? Math.max(0, Math.min(kFull - morPeriods, repayN)) : 0;
+  const k = isHybrid ? Math.max(0, Math.min(kFull, repayN)) : 0;
 
   const mpp = 12 / ppy; // months per instalment period
   // Everything is derived from the Date of Disbursement. The first instalment falls on the
@@ -388,7 +388,7 @@ function calculate(inp) {
   // residual created by rounding is cleared in the final instalment (see below).
   const roundStep = inp.roundEmi > 0 ? inp.roundEmi : 0;
   const roundEMI = (v) => (roundStep > 0 ? Math.round(v / roundStep) * roundStep : v);
-  let emiPhase1 = roundEMI(-Fin.pmt(rp, repayN, bal));
+  let emiPhase1 = roundEMI(-Fin.pmt(rp, repayN, balAfterMor));
   let emiPhase2 = emiPhase1;
   let emi = emiPhase1;
 
@@ -428,6 +428,15 @@ function calculate(inp) {
 
   const totalPayable = P + totalInterest;
 
+  let totalPrincipalRepaid = 0;
+  for (const row of schedule) {
+    if (row.principal > 0) totalPrincipalRepaid += row.principal;
+  }
+  const interestTenorMo = Math.max(1, inp.tenureMonths || 1);
+  const principalTenorMo = Math.max(1, (inp.tenureMonths || 0) - (inp.moratoriumMonths || 0));
+  const avgPrincipalPerMonth = totalPrincipalRepaid / principalTenorMo;
+  const avgInterestPerMonth = totalInterest / interestTenorMo;
+
   // Stamp a month-end due date string on every schedule row.
   schedule.forEach((row, idx) => {
     row.dueDate = endOfMonthFrom(baseDate, Math.round((idx - morPeriods) * mpp));
@@ -438,7 +447,9 @@ function calculate(inp) {
     P, r, n: repayN, totalN, morPeriods, moratoriumMonths: inp.moratoriumMonths || 0, interestServiced: serviceInterest, balAfterMor,
     emi, emiPhase1, emiPhase2, k, rp2, isHybrid,
     reTotal, tpTotal, totalCharges, apr,
-    emi25, tenure25, totalInterest, netDisbursed, totalPayable,
+    emi25, tenure25, totalInterest, totalPrincipalRepaid, principalTenorMo, interestTenorMo,
+    avgPrincipalPerMonth, avgInterestPerMonth,
+    netDisbursed, totalPayable,
     schedule, commencementDate, daysToCommence: commenceDays,
     amountWords: numberToWordsIndian(P),
   };
@@ -452,8 +463,16 @@ function buildKfsHtml(inp, res) {
   KFS_ROUND_STEP = inp.roundEmi > 0 ? inp.roundEmi : 0;
   const disbDate = fmtDate(inp.disbursalDate);
   const hasFloat = inp.rateMode === "Floating" || inp.rateMode === "Hybrid";
-  const tm = inp.tenureMonths || 0;
-  const tenureTxt = `${tm} Month${tm == 1 ? "" : "s"}${tm % 12 === 0 && tm >= 12 ? ` (${tm / 12} Yr${tm / 12 == 1 ? "" : "s"})` : ""}`;
+  const repayMo = inp.tenureMonths || 0;
+  const morMo = inp.moratoriumMonths || 0;
+  const totalMo = repayMo + morMo;
+  let tenureTxt;
+  if (morMo > 0) {
+    tenureTxt = `${totalMo} Month${totalMo == 1 ? "" : "s"} (${repayMo} repayment + ${morMo} MoP)`;
+    if (totalMo % 12 === 0 && totalMo >= 12) tenureTxt += ` (${totalMo / 12} Yr${totalMo / 12 == 1 ? "" : "s"} total)`;
+  } else {
+    tenureTxt = `${repayMo} Month${repayMo == 1 ? "" : "s"}${repayMo % 12 === 0 && repayMo >= 12 ? ` (${repayMo / 12} Yr${repayMo / 12 == 1 ? "" : "s"})` : ""}`;
+  }
 
   const part1 = `
   <article class="kfs-page" id="part1">
@@ -481,7 +500,7 @@ function buildKfsHtml(inp, res) {
       </td></tr>
       <tr><td class="sn main">2</td><td class="lbl">Sanctioned Loan amount (in Rupees)</td><td class="val" colspan="2">₹ ${fmtMoney(res.P)} <span class="muted">(${res.amountWords})</span></td></tr>
       <tr><td class="sn main">3</td><td class="lbl">Disbursal schedule<br><span class="muted">(i) Disbursement in stages or 100% upfront. (ii) If it is stage wise, mention the clause of loan agreement having relevant details.</span></td><td class="val" colspan="2">${inp.disbursalSchedule}${inp.disbursalClause ? " &mdash; " + inp.disbursalClause : ""}</td></tr>
-      <tr id="p1-s4"><td class="sn main">4</td><td class="lbl">Loan term (year/months/days)</td><td class="val" colspan="2">${tenureTxt}${res.moratoriumMonths ? ` <span class="muted">(includes a MoP of ${res.moratoriumMonths} month${res.moratoriumMonths == 1 ? "" : "s"}; ${res.interestServiced ? "during the MoP the borrower services the monthly accrued interest, with principal repayment commencing after the MoP" : "during the MoP the accrued interest is capitalised to the outstanding principal each month, with no instalment payable during the MoP"})</span>` : ""}</td></tr>
+      <tr id="p1-s4"><td class="sn main">4</td><td class="lbl">Loan term (year/months/days)</td><td class="val" colspan="2">${tenureTxt}${res.moratoriumMonths ? ` <span class="muted">(${res.interestServiced ? "during the MoP the borrower services the monthly accrued interest" : "during the MoP accrued interest is capitalised to the outstanding principal each month"})</span>` : ""}</td></tr>
       <tr><td class="sn main">5</td><td class="lbl" colspan="3">Instalment details</td></tr>
       <tr><td colspan="4" class="nestcell">
         <table class="kfs-table nested">
@@ -737,6 +756,14 @@ function refresh() {
   const res = calculate(inp);
   syncApr(res);
   render(inp, res);
+  const avgPrEl = document.getElementById("avgPrincipalPerMonth");
+  const avgIntEl = document.getElementById("avgInterestPerMonth");
+  if (avgPrEl) avgPrEl.textContent = "₹ " + fmtMoney(res.avgPrincipalPerMonth);
+  const avgPrTag = document.getElementById("avgPrincipalMonthTag");
+  if (avgPrTag) avgPrTag.textContent = ` (${res.principalTenorMo} Month)`;
+  if (avgIntEl) avgIntEl.textContent = "₹ " + fmtMoney(res.avgInterestPerMonth);
+  const avgIntTag = document.getElementById("avgInterestMonthTag");
+  if (avgIntTag) avgIntTag.textContent = ` (${res.interestTenorMo} Month)`;
 }
 
 function toggleRateMode() {
@@ -783,7 +810,7 @@ const _BM_EBLR = "External Benchmark Lending Rate (EBLR)";
 const LOAN_TYPE_PROFILES = {
   // ECLGS 5.0: WC term loan, EBLR+0.75% capped 9%, 5-yr tenure incl. 1-yr moratorium, nil fees.
   "ECLGS 5.0 (Emergency Credit Line Guarantee Scheme)": {
-    amount: "2,00,000", tenureMonths: "60", moratoriumMonths: "12", payInterestMonthly: "Yes",
+    amount: "2,00,000", tenureMonths: "48", moratoriumMonths: "12", payInterestMonthly: "Yes",
     frequency: "Monthly", rateMode: "Floating", benchmark: _BM_EBLR, benchmarkRate: "8.25", spread: "0.75", resetMonths: "3",
     re_processing: "0", re_insurance: "0", re_valuation: "0", re_other: "0",
     tp_processing: "0", tp_insurance: "0", tp_valuation: "0", tp_other: "0",
@@ -793,7 +820,7 @@ const LOAN_TYPE_PROFILES = {
   },
   // MSME Term Loan: capex term loan, repo-linked, 7-yr tenure, short moratorium, ~1% processing.
   "MSME Term Loan": {
-    amount: "10,00,000", tenureMonths: "84", moratoriumMonths: "6", payInterestMonthly: "Yes",
+    amount: "10,00,000", tenureMonths: "78", moratoriumMonths: "6", payInterestMonthly: "Yes",
     frequency: "Monthly", rateMode: "Floating", benchmark: _BM_REPO, benchmarkRate: "6.5", spread: "3", resetMonths: "3",
     re_processing: "10000", re_insurance: "0", re_valuation: "0", re_other: "0",
     tp_processing: "0", tp_insurance: "0", tp_valuation: "5000", tp_other: "0",
@@ -824,7 +851,7 @@ const LOAN_TYPE_PROFILES = {
   },
   // Machinery / Equipment: secured term loan, valuation fee, short moratorium.
   "Machinery / Equipment Loan": {
-    amount: "15,00,000", tenureMonths: "72", moratoriumMonths: "6", payInterestMonthly: "Yes",
+    amount: "15,00,000", tenureMonths: "66", moratoriumMonths: "6", payInterestMonthly: "Yes",
     frequency: "Monthly", rateMode: "Floating", benchmark: _BM_REPO, benchmarkRate: "6.5", spread: "3", resetMonths: "3",
     re_processing: "15000", re_insurance: "0", re_valuation: "0", re_other: "0",
     tp_processing: "0", tp_insurance: "0", tp_valuation: "5000", tp_other: "0",
@@ -846,7 +873,7 @@ const LOAN_TYPE_PROFILES = {
   },
   // MUDRA: collateral-free (CGFMU), Shishu/Kishore/Tarun, nil processing for Shishu.
   "MUDRA Loan (Shishu / Kishore / Tarun)": {
-    amount: "5,00,000", tenureMonths: "60", moratoriumMonths: "6", payInterestMonthly: "Yes",
+    amount: "5,00,000", tenureMonths: "54", moratoriumMonths: "6", payInterestMonthly: "Yes",
     frequency: "Monthly", rateMode: "Floating", benchmark: _BM_REPO, benchmarkRate: "6.5", spread: "2.75", resetMonths: "3",
     re_processing: "0", re_insurance: "0", re_valuation: "0", re_other: "0",
     tp_processing: "0", tp_insurance: "0", tp_valuation: "0", tp_other: "0",
@@ -856,7 +883,7 @@ const LOAN_TYPE_PROFILES = {
   },
   // Stand-Up India: SC/ST/women, composite loan, 7-yr tenure incl. up to 18-month moratorium.
   "Stand-Up India Loan": {
-    amount: "25,00,000", tenureMonths: "84", moratoriumMonths: "18", payInterestMonthly: "Yes",
+    amount: "25,00,000", tenureMonths: "66", moratoriumMonths: "18", payInterestMonthly: "Yes",
     frequency: "Monthly", rateMode: "Floating", benchmark: _BM_REPO, benchmarkRate: "6.5", spread: "3", resetMonths: "3",
     re_processing: "10000", re_insurance: "0", re_valuation: "0", re_other: "0",
     tp_processing: "0", tp_insurance: "0", tp_valuation: "5000", tp_other: "0",
@@ -867,7 +894,7 @@ const LOAN_TYPE_PROFILES = {
   },
   // CGTMSE-backed: collateral-free up to ₹5cr, guarantee-covered, no valuation.
   "CGTMSE-backed MSME Loan": {
-    amount: "10,00,000", tenureMonths: "60", moratoriumMonths: "6", payInterestMonthly: "Yes",
+    amount: "10,00,000", tenureMonths: "54", moratoriumMonths: "6", payInterestMonthly: "Yes",
     frequency: "Monthly", rateMode: "Floating", benchmark: _BM_REPO, benchmarkRate: "6.5", spread: "3", resetMonths: "3",
     re_processing: "10000", re_insurance: "0", re_valuation: "0", re_other: "0",
     tp_processing: "0", tp_insurance: "0", tp_valuation: "0", tp_other: "0",
@@ -1041,6 +1068,7 @@ function showGuide() {
     `<li><b>Fees &amp; charge nature.</b> Enter the amount and the <i>One-time / Recurring</i> nature side-by-side for <i>Payable to RE (8A)</i> and <i>Third Party (8B)</i>.</li>` +
     `<li><b>APR.</b> The <i>Annual Percentage Rate</i> is auto-calculated from the loan terms and fees (IRR / reducing-balance method). Untick <i>Auto</i> to type your own APR &mdash; it is then used as-is in the KFS (Sl. 9) and the APR illustration.</li>` +
     `<li><b>Use dropdowns.</b> Many fields are dropdowns; choose <i>Other (specify)</i> to type a custom value.</li>` +
+    `<li><b>Repayment tenure vs MoP.</b> <i>Repayment tenure (Months)</i> is the number of equated instalment (EPI) periods <b>after</b> the moratorium &mdash; the same basis most core banking systems use for EMI. The MoP is entered separately; total facility term on the KFS = repayment tenure + MoP.</li>` +
     `<li><b>Moratorium options.</b> When a <i>Moratorium Period (MoP)</i> is set, choose whether interest is <i>paid monthly</i> (principal unchanged) or <i>capitalised</i>. If paid monthly, <i>Instalment during Moratorium</i> controls how the MoP rows read in the schedule (<i>Pay interest only</i>, the <i>Computed interest</i>, <i>Add 0</i>, or your own text) &mdash; this is display-only and never changes the calculation.</li>` +
     `<li><b>A4 preview.</b> The on-screen preview shows each section as a real <b>A4 sheet</b> with the same margins as the export, and a faint line marks every page boundary &mdash; so you can see at a glance how many pages each Annexure will take. Each section fits its own A4 page (the long <i>Annexure-A(2)</i> schedule may flow across several).</li>` +
     `<li><b>Click <span class="guide-pill">&#10003; Validate</span></b> (floating button, bottom-right). Missing or invalid mandatory fields are highlighted in red and listed at the top. The Grievance Redressal Officer (GRO) details are optional &mdash; if left blank they show as an amber note and can be added manually later.</li>` +
@@ -1075,7 +1103,7 @@ function requiredRulesFor(mode) {
     ["amount", "Sanctioned Amount", "positive"],
     ["sanctionDate", "Date of Sanction"],
     ["disbursalSchedule", "Disbursement Schedule"],
-    ["tenureMonths", "Tenure (Months)", "positive"],
+    ["tenureMonths", "Repayment tenure (Months)", "positive"],
     ["frequency", "Instalment Frequency"],
     ["rateMode", "Rate Type"],
     ["q_recovery", "Recovery agent clause"],
@@ -1141,9 +1169,6 @@ function bankingTermProblems() {
   const out = [];
 
   const tenure = num("tenureMonths");
-  const mor = num("moratoriumMonths");
-  if (tenure > 0 && mor >= tenure)
-    out.push({ msg: "MoP (Moratorium Period) must be shorter than the Tenure", fields: ["moratoriumMonths", "tenureMonths"] });
 
   if (str("rateMode") === "Hybrid" && tenure > 0 && num("hybridFixedYears") * 12 > tenure)
     out.push({ msg: "Hybrid fixed-rate period must not exceed the Tenure", fields: ["hybridFixedYears", "tenureMonths"] });
@@ -1708,7 +1733,7 @@ function buildTemplateCSV() {
     amount: "1000000",
     sanctionDate: "2026-04-15",
     disbursalDate: "2026-04-20",
-    tenureMonths: "84",
+    tenureMonths: "78",
     moratoriumMonths: "6",
     payInterestMonthly: "Yes",
     rateMode: "Floating",

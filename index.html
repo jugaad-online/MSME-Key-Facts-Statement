@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MSME KFS Builder - RBI Key Facts Statement (Annexure-A)</title>
-  <link rel="stylesheet" href="styles.css?v=20260627g" />
+  <link rel="stylesheet" href="styles.css?v=20260701e" />
 </head>
 <body>
   <header class="app-header no-print">
@@ -93,9 +93,9 @@
       </fieldset>
 
       <fieldset data-target="p1-s4">
-        <legend>Part-1 &middot; Loan Term &amp; Instalments (Sl. 4&ndash;5)<span class="help" title="Tenure (Months): total loan repayment period in months (e.g. 120 = 10 years). • Moratorium Period [MoP] (months): initial period during which no principal EPI is paid (set 0 for no MoP); interest during the MoP is either paid monthly or capitalised, per the option below. • Instalment Frequency: how often instalments are paid (Monthly, Quarterly, Half-Yearly, Annually). • Round off EPI / EMI: round each instalment to the nearest ₹1, ₹10 or ₹100 (or keep paise); any rounding difference is absorbed in the final instalment.">?</span></legend>
+        <legend>Part-1 &middot; Loan Term &amp; Instalments (Sl. 4&ndash;5)<span class="help" title="Repayment tenure (Months): number of equated instalment (EPI) periods after the MoP — this is what most core banking systems use for EMI (e.g. 60 = 60 monthly EPIs). It does not include the MoP. • Moratorium Period [MoP] (months): extra initial period before EPIs start (set 0 for none); interest is paid monthly or capitalised. Total loan term on the KFS = repayment tenure + MoP. • Instalment Frequency: Monthly, Quarterly, etc. • Round off EPI / EMI: nearest ₹1/₹10/₹100; residual in the final instalment.">?</span></legend>
         <div class="field-pair">
-          <label class="apr-dep">Tenure (Months)
+          <label class="apr-dep">Repayment tenure (Months)<span class="help" title="Count of equated instalment (EPI) periods in the repayment phase, excluding the MoP. Example: 60 monthly EPIs with a 12-month MoP → enter 60 here and 12 in MoP (total facility 72 months).">?</span>
             <input type="number" id="tenureMonths" value="60" min="1" max="600" step="1" />
           </label>
           <label class="apr-dep">Moratorium Period [MoP] (months)
@@ -135,6 +135,14 @@
               <option value="10">Nearest &#8377;10</option>
               <option value="100">Nearest &#8377;100</option>
             </select>
+          </label>
+        </div>
+        <div class="field-pair">
+          <label>Average principal per month<span class="computed-month" id="avgPrincipalMonthTag"></span><span class="help" title="Total schedule principal ÷ (Repayment tenure − MoP months). The month count is calculated from your inputs.">?</span>
+            <output id="avgPrincipalPerMonth" class="computed-out">—</output>
+          </label>
+          <label>Average interest per month<span class="computed-month" id="avgInterestMonthTag"></span><span class="help" title="Total schedule interest ÷ Repayment tenure (months). The month count is calculated from your inputs.">?</span>
+            <output id="avgInterestPerMonth" class="computed-out">—</output>
           </label>
         </div>
       </fieldset>
@@ -361,6 +369,6 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
   <script src="https://unpkg.com/html-docx-js@0.3.1/dist/html-docx.js"></script>
-  <script src="kfs.js?v=20260627g"></script>
+  <script src="kfs.js?v=20260701e"></script>
 </body>
 </html>
